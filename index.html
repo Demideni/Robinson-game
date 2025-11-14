@@ -93,7 +93,7 @@
       position: absolute;
       left: 0;
       right: 0;
-      top: 75%;               /* центр нижней половины экрана */
+      top: 75%;
       transform: translateY(-50%);
       padding: 6px 10px;
       display: flex;
@@ -253,8 +253,7 @@
       bg: "assets/bg_ocean.png",
       rob: "assets/robinson.png",
       island: "assets/island_long.png",
-      // одна картинка птицы, не спрайт-лист
-      bird: "assets/bird_spritesheet.png",
+      bird: "assets/bird_spritesheet.png",  // статичная птица
       x2: "assets/bonus_x2.png",
       x3: "assets/bonus_x3.png",
       x5: "assets/bonus_x5.png",
@@ -296,6 +295,10 @@
 
     let bonusPulse = 0;
 
+    // анимация Робинзона
+    let robinsonAnimTime = 0;
+    let shoutVisible = 0; // время, когда виден пузырь "А-А-А!"
+
     function resetRound() {
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
@@ -304,7 +307,7 @@
         x: w * HERO_X_REL,
         y: h * 0.5,
         vy: -170,
-        width: 72,   // уменьшенный Робинзон
+        width: 72,
         height: 72,
       };
 
@@ -314,6 +317,8 @@
       multiplier = 1;
       lastTs = performance.now();
       bonusPulse = 0;
+      robinsonAnimTime = 0;
+      shoutVisible = 0;
       multiplierEl.textContent = "1.00x";
 
       const baseX = w * 0.55;
@@ -373,7 +378,6 @@
       }
     });
 
-    // Заставка: убираем оверлей по нажатию
     splashStartBtn.addEventListener("click", () => {
       splash.classList.add("hidden");
     });
@@ -421,7 +425,7 @@
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
 
-      const size = 58; // птица на 20% меньше (от 72)
+      const size = 58; // птица меньше
       const y = h * (0.35 + Math.random() * 0.35);
       const x = w + size * 0.8;
       const last = getLastOfType("bird");
@@ -463,7 +467,7 @@
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
 
-      const size = 32; // бонусы 32×32
+      const size = 32;
       const y = h * (0.4 + Math.random() * 0.4);
       const x = w + size * 0.6;
       const last = getLastOfType("bonus");
@@ -496,7 +500,15 @@
       time += dt;
       bonusPulse = Math.max(0, bonusPulse - dt);
 
-      // Множитель не растёт по времени — только из бонусов
+      // время для анимации Робинзона
+      robinsonAnimTime += dt;
+
+      // "крик" случайными короткими вспышками
+      if (shoutVisible > 0) {
+        shoutVisible -= dt;
+      } else if (Math.random() < 0.8 * dt) { // вероятность крика
+        shoutVisible = 0.35; // длительность пузыря
+      }
 
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
@@ -601,20 +613,19 @@
       if (!img) return;
 
       const pulse = bonusPulse > 0 ? (bonusPulse / 0.25) : 0;
+
+      // лёгкое покачивание и подпрыгивание
+      const tilt = Math.sin(robinsonAnimTime * 6) * 0.18; // угол в радианах
+      const bobY = Math.sin(robinsonAnimTime * 3) * 4;   // вертикальное подрагивание
+
       const scale = 1 + 0.25 * pulse;
 
       ctx.save();
-      ctx.translate(robinson.x, robinson.y);
-
-      if (pulse > 0) {
-        ctx.beginPath();
-        ctx.arc(0, 0, Math.max(robinson.width, robinson.height) * 0.7 * scale, 0, Math.PI * 2);
-        ctx.strokeStyle = "rgba(255, 220, 120, 0.7)";
-        ctx.lineWidth = 4;
-        ctx.stroke();
-      }
-
+      ctx.translate(robinson.x, robinson.y + bobY);
+      ctx.rotate(tilt);
       ctx.scale(scale, scale);
+
+      // тело
       ctx.drawImage(
         img,
         -robinson.width / 2,
@@ -622,7 +633,79 @@
         robinson.width,
         robinson.height
       );
+
+      // болтающиеся ноги (простые прямоугольники)
+      const legOffsetY = robinson.height / 2 - 6;
+      const legLen = 14;
+      const legPhase = Math.sin(robinsonAnimTime * 20); // частые взмахи
+
+      ctx.lineWidth = 3;
+      ctx.lineCap = "round";
+      ctx.strokeStyle = "rgba(60,20,0,0.9)";
+
+      // левая нога
+      ctx.beginPath();
+      ctx.moveTo(-6, legOffsetY);
+      ctx.lineTo(-6 + legPhase * 3, legOffsetY + legLen);
+      ctx.stroke();
+
+      // правая нога
+      ctx.beginPath();
+      ctx.moveTo(6, legOffsetY);
+      ctx.lineTo(6 - legPhase * 3, legOffsetY + legLen);
+      ctx.stroke();
+
       ctx.restore();
+
+      // пузырь "А-А-А!" если кричит
+      if (shoutVisible > 0) {
+        const alpha = Math.min(1, shoutVisible / 0.15);
+        const px = robinson.x + robinson.width * 0.55;
+        const py = robinson.y - robinson.height * 0.7;
+
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = "rgba(255,255,255,0.9)";
+        ctx.strokeStyle = "rgba(0,0,0,0.6)";
+        ctx.lineWidth = 2;
+
+        const w = 48;
+        const h = 24;
+        const r = 8;
+
+        // пузырь
+        ctx.beginPath();
+        ctx.moveTo(px - w/2 + r, py - h/2);
+        ctx.lineTo(px + w/2 - r, py - h/2);
+        ctx.quadraticCurveTo(px + w/2, py - h/2, px + w/2, py - h/2 + r);
+        ctx.lineTo(px + w/2, py + h/2 - r);
+        ctx.quadraticCurveTo(px + w/2, py + h/2, px + w/2 - r, py + h/2);
+        ctx.lineTo(px - w/2 + r, py + h/2);
+        ctx.quadraticCurveTo(px - w/2, py + h/2, px - w/2, py + h/2 - r);
+        ctx.lineTo(px - w/2, py - h/2 + r);
+        ctx.quadraticCurveTo(px - w/2, py - h/2, px - w/2 + r, py - h/2);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // "хвостик" пузыря
+        ctx.beginPath();
+        ctx.moveTo(px - 4, py + h/2);
+        ctx.lineTo(px - 12, py + h/2 + 10);
+        ctx.lineTo(px, py + h/2);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // текст
+        ctx.fillStyle = "#000";
+        ctx.font = "bold 12px system-ui";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("А-А-А!", px - 1, py);
+
+        ctx.restore();
+      }
     }
 
     function drawObjects() {
@@ -646,7 +729,6 @@
           );
         }
         if (o.type === "bird" && assets.bird) {
-          // одна статичная картинка птицы
           ctx.drawImage(
             assets.bird,
             o.x - o.w / 2,
