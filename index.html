@@ -22,13 +22,12 @@
       padding: 8px 10px 4px;
       display: flex;
       flex-direction: column;
-      align-items: center; /* центрируем весь блок UI */
+      align-items: center;
       gap: 4px;
       background: linear-gradient(to bottom, rgba(0,0,0,.6), rgba(0,0,0,0));
       z-index: 10;
       pointer-events: none;
     }
-    /* Все основные строки UI ограничиваем по ширине и центрируем */
     #ui-top,
     #auth-panel,
     #stats,
@@ -99,7 +98,7 @@
     }
     #multiplier {
       font-size: 18px;
-      font-weight: 800; /* делаем множитель заметнее */
+      font-weight: 800;
     }
     #status-text {
       font-weight: 600;
@@ -119,7 +118,6 @@
       display: block;
     }
 
-    /* Адаптив под телефон */
     @media (max-width: 480px) {
       #ui {
         padding: 6px 6px 4px;
@@ -165,8 +163,8 @@
       </div>
     </div>
 
+    <!-- ОСТАВИЛ ТОЛЬКО ДЕПОЗИТ, БЕЗ РЕГИСТРАЦИИ -->
     <div id="auth-panel">
-      <button id="register-btn">Регистрация</button>
       <button id="deposit-btn">Депозит</button>
     </div>
 
@@ -182,24 +180,9 @@
   </div>
 
   <script>
-    // --- Telegram WebApp ---
+    // Можно оставить поддержку Telegram.WebApp на будущее
     const tg = window.Telegram ? window.Telegram.WebApp : null;
-    let telegramId = null;
-    if (tg) {
-      tg.ready();
-      telegramId =
-        tg.initDataUnsafe &&
-        tg.initDataUnsafe.user &&
-        tg.initDataUnsafe.user.id
-          ? String(tg.initDataUnsafe.user.id)
-          : null;
-    }
-    if (!telegramId) {
-      telegramId = "test-user-1"; // fallback для браузера
-    }
-
-    // --- API BASE: локалка vs прод (Render) ---
-    const API_BASE = "https://robinson-games.onrender.com";
+    if (tg) tg.ready();
 
     const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
@@ -209,7 +192,6 @@
     const startBtn = document.getElementById("start-btn");
     const betInput = document.getElementById("bet-input");
     const balanceEl = document.getElementById("balance");
-    const registerBtn = document.getElementById("register-btn");
     const depositBtn = document.getElementById("deposit-btn");
 
     // --- Resize ---
@@ -237,7 +219,7 @@
       bg: "assets/bg_ocean.png",
       rob: "assets/robinson.png",
       island: "assets/island_long.png",
-      bird: "assets/bird_spritesheet.png", // новый спрайт-лист (8 кадров)
+      bird: "assets/bird_spritesheet.png",
       x2: "assets/bonus_x2.png",
       x3: "assets/bonus_x3.png",
       x5: "assets/bonus_x5.png",
@@ -255,7 +237,7 @@
       }
       allLoaded = true;
       statusEl.textContent = "Готово к игре";
-      initProfile(); // подтягиваем баланс после загрузки ассетов
+      balanceEl.textContent = userBalance.toFixed(2);
     })();
 
     // --- GAME STATE ---
@@ -267,9 +249,8 @@
     let multiplier;
     let baseBet = 1;
 
-    // Баланс / пользователь
-    let userBalance = 0;
-    let isRegistered = false;
+    // Локальный баланс без регистрации и сервера
+    let userBalance = 100; // стартовый баланс
 
     // Параметры полёта и спавна
     const HERO_X_REL = 0.25;
@@ -289,7 +270,6 @@
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
 
-      // Старт: немного вверх, дуга, чуть ниже середины
       robinson = {
         x: w * HERO_X_REL,
         y: h * 0.5,
@@ -307,7 +287,6 @@
       birdAnimTime = 0;
       multiplierEl.textContent = "1.00x";
 
-      // Стартовая цепочка бонусов по траектории и на разных высотах
       const baseX = w * 0.55;
       const spacing = 90;
       const startBonuses = ["x2", "x3", "x5", "x2", "x10", "x3"];
@@ -325,163 +304,35 @@
       });
     }
 
-    // --- API HELPERS (регистрация, профиль, депозит, ставки) ---
-    async function apiRegister() {
-      try {
-        const name =
-          tg && tg.initDataUnsafe && tg.initDataUnsafe.user
-            ? tg.initDataUnsafe.user.first_name
-            : "Guest";
-        const res = await fetch(API_BASE + "/api/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ telegramId, name }),
-        });
-        const data = await res.json();
-        if (!res.ok || data.error) throw new Error(data.error || "Ошибка регистрации");
-        return data;
-      } catch (e) {
-        statusEl.textContent = e.message;
-        return null;
-      }
-    }
-
-    async function apiProfile() {
-      try {
-        const res = await fetch(
-          API_BASE + "/api/profile?telegramId=" + encodeURIComponent(telegramId)
-        );
-        if (res.status === 404) return null;
-        const data = await res.json();
-        return data;
-      } catch (e) {
-        return null;
-      }
-    }
-
-    async function apiDeposit(amount) {
-      try {
-        const res = await fetch(API_BASE + "/api/deposit", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ telegramId, amount }),
-        });
-        const data = await res.json();
-        if (!res.ok || data.error) throw new Error(data.error || "Ошибка депозита");
-        return data;
-      } catch (e) {
-        statusEl.textContent = e.message;
-        return null;
-      }
-    }
-
-    async function apiBet(amount) {
-      try {
-        const res = await fetch(API_BASE + "/api/bet", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ telegramId, amount }),
-        });
-        const data = await res.json();
-        if (!res.ok || data.error) throw new Error(data.error || "Ошибка ставки");
-        return data;
-      } catch (e) {
-        statusEl.textContent = e.message;
-        return null;
-      }
-    }
-
-    async function apiResult(win, multiplier, bet) {
-      try {
-        const res = await fetch(API_BASE + "/api/result", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ telegramId, win, multiplier, bet }),
-        });
-        const data = await res.json();
-        return data;
-      } catch (e) {
-        return null;
-      }
-    }
-
-    async function initProfile() {
-      const profile = await apiProfile();
-      if (profile && profile.balance != null) {
-        isRegistered = true;
-        userBalance = profile.balance;
-        balanceEl.textContent = userBalance.toFixed(2);
-        statusEl.textContent = "Баланс загружен";
-      } else {
-        isRegistered = false;
-        userBalance = 0;
-        balanceEl.textContent = "0.00";
-        statusEl.textContent = "Зарегистрируйся, чтобы играть на баланс";
-      }
-    }
-
-    // --- UI HANDLERS ---
-    registerBtn.addEventListener("click", async () => {
-      if (isRegistered) {
-        statusEl.textContent = "Ты уже зарегистрирован";
-        return;
-      }
-      const res = await apiRegister();
-      if (res && res.balance != null) {
-        isRegistered = true;
-        userBalance = res.balance;
-        balanceEl.textContent = userBalance.toFixed(2);
-        statusEl.textContent = "Регистрация успешна";
-      }
-    });
-
-    depositBtn.addEventListener("click", async () => {
-      if (!isRegistered) {
-        statusEl.textContent = "Сначала зарегистрируйся";
-        return;
-      }
+    // --- ДЕПОЗИТ локально ---
+    depositBtn.addEventListener("click", () => {
       const amountStr = prompt("Сумма депозита (игровые монеты):");
       const amount = parseFloat(amountStr || "0");
       if (!amount || amount <= 0) return;
 
-      const res = await apiDeposit(amount);
-      if (res && res.balance != null) {
-        userBalance = res.balance;
-        balanceEl.textContent = userBalance.toFixed(2);
-        statusEl.textContent = "Депозит зачислен";
-      }
+      userBalance += amount;
+      balanceEl.textContent = userBalance.toFixed(2);
+      statusEl.textContent = "Баланс пополнен";
     });
 
-    async function startRound() {
+    // --- СТАРТ РАУНДА без регистрации и сервера ---
+    function startRound() {
       if (!allLoaded) return;
       baseBet = Math.max(parseFloat(betInput.value) || 0, 0.1);
       betInput.value = baseBet.toFixed(2);
 
-      if (!isRegistered) {
-        statusEl.textContent = "Нужно зарегистрироваться";
-        return;
-      }
       if (userBalance < baseBet) {
         statusEl.textContent = "Недостаточно средств, пополни баланс";
         return;
       }
 
-      statusEl.textContent = "Ставка отправляется...";
-      startBtn.disabled = true;
-
-      const betResp = await apiBet(baseBet);
-      if (!betResp) {
-        startBtn.disabled = false;
-        return;
-      }
-      if (betResp.balance != null) {
-        userBalance = betResp.balance;
-        balanceEl.textContent = userBalance.toFixed(2);
-      }
+      userBalance -= baseBet;
+      balanceEl.textContent = userBalance.toFixed(2);
 
       resetRound();
       state = "flying";
       statusEl.textContent = "Робинзон в полёте...";
+      startBtn.disabled = true;
     }
 
     startBtn.addEventListener("click", () => {
@@ -490,10 +341,11 @@
       }
     });
 
-    async function finishRound(win) {
-      const res = await apiResult(win, multiplier, baseBet);
-      if (res && res.balance != null) {
-        userBalance = res.balance;
+    // Завершение раунда — считаем выигрыш локально
+    function finishRound(win) {
+      if (win) {
+        const payout = baseBet * multiplier;
+        userBalance += payout;
         balanceEl.textContent = userBalance.toFixed(2);
       }
     }
@@ -512,7 +364,7 @@
 
       const width = 260;
       const height = 80;
-      const y = h * 0.93; // почти у воды
+      const y = h * 0.93;
 
       const x = w + width * 0.6;
       const last = getLastOfType("island");
@@ -534,7 +386,7 @@
       const h = canvas.height / window.devicePixelRatio;
 
       const size = 72;
-      const y = h * (0.35 + Math.random() * 0.35); // 0.35–0.7
+      const y = h * (0.35 + Math.random() * 0.35);
       const x = w + size * 0.8;
       const last = getLastOfType("bird");
       const minGap = 180;
@@ -576,7 +428,7 @@
       const h = canvas.height / window.devicePixelRatio;
 
       const size = 80;
-      const y = h * (0.4 + Math.random() * 0.4); // ниже, в рабочей зоне
+      const y = h * (0.4 + Math.random() * 0.4);
       const x = w + size * 0.6;
       const last = getLastOfType("bonus");
       const minGap = 150;
@@ -618,7 +470,6 @@
       const h = canvas.height / window.devicePixelRatio;
       const waterY = h * WATER_LINE_REL;
 
-      // Полёт по дуге
       robinson.vy += gravity * dt;
       robinson.y += robinson.vy * dt;
 
@@ -628,7 +479,6 @@
         if (robinson.vy < 0) robinson.vy = 0;
       }
 
-      // Падение в воду — конец раунда
       if (robinson.y + robinson.height / 2 >= waterY) {
         state = "lost";
         statusEl.textContent = "Робинзон упал в воду";
@@ -637,17 +487,14 @@
         return;
       }
 
-      // Спавн объектов
       const islandProb = Math.max(0.0005, ISLAND_BASE_PROB / (1 + multiplier * 0.1));
       if (Math.random() < islandProb) spawnIsland();
       if (Math.random() < BIRD_PROB)  spawnBird();
       if (Math.random() < BONUS_PROB) spawnBonus();
 
-      // Движение объектов
       const dx = OBJECT_SPEED * dt;
       objects.forEach((o) => { o.x -= dx; });
 
-      // Уменьшенный хитбокс Робинзона
       const heroBox = {
         x: robinson.x - robinson.width * 0.35,
         y: robinson.y - robinson.height * 0.35,
@@ -655,7 +502,6 @@
         h: robinson.height * 0.7,
       };
 
-      // Столкновения
       for (const o of objects) {
         const ow = o.w * 0.8;
         const oh = o.h * 0.8;
@@ -696,7 +542,6 @@
         }
       }
 
-      // чистим объекты
       objects = objects.filter(o => o.x + o.w > -50 && !o._dead);
     }
 
@@ -769,7 +614,7 @@
         }
         if (o.type === "bird" && assets.bird) {
           const img = assets.bird;
-          const frames = 8; // новый спрайт-лист — 8 кадров
+          const frames = 8;
           const frameW = img.width / frames;
           const frameH = img.height;
           const fps = 12;
