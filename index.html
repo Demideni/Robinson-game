@@ -40,8 +40,6 @@
       font-size: 18px;
     }
 
-    /* верхняя панель ставок убрал — оставляем только логотип */
-
     button {
       border: none;
       border-radius: 999px;
@@ -133,7 +131,7 @@
     </div>
 
     <div id="auth-panel">
-      <button id="register-btn">Регистрация</button>
+      <!-- оставляем только депозит, регистрации больше нет -->
       <button id="deposit-btn">Депозит</button>
     </div>
 
@@ -156,25 +154,6 @@
   </div>
 
   <script>
-    // --- Telegram WebApp ---
-    const tg = window.Telegram ? window.Telegram.WebApp : null;
-    let telegramId = null;
-    if (tg) {
-      tg.ready();
-      telegramId =
-        tg.initDataUnsafe &&
-        tg.initDataUnsafe.user &&
-        tg.initDataUnsafe.user.id
-          ? String(tg.initDataUnsafe.user.id)
-          : null;
-    }
-    if (!telegramId) {
-      telegramId = "test-user-1"; // fallback для браузера
-    }
-
-    // !!! не забудь подставить свой URL сервера
-    const API_BASE = "https://your-backend-domain.com";
-
     const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
 
@@ -183,7 +162,6 @@
     const startBtn = document.getElementById("start-btn");
     const betInput = document.getElementById("bet-input");
     const balanceEl = document.getElementById("balance");
-    const registerBtn = document.getElementById("register-btn");
     const depositBtn = document.getElementById("deposit-btn");
 
     // --- Resize ---
@@ -241,8 +219,8 @@
     let multiplier;
     let baseBet = 1;
 
-    let userBalance = 0;
-    let isRegistered = false;
+    // локальный баланс без регистрации/бэкенда
+    let userBalance = 100;
 
     const HERO_X_REL = 0.25;
     const OBJECT_SPEED = 380;
@@ -296,162 +274,39 @@
       });
     }
 
-    // --- API HELPERS (регистрация/баланс) ---
-    async function apiRegister() {
-      try {
-        const name =
-          tg && tg.initDataUnsafe && tg.initDataUnsafe.user
-            ? tg.initDataUnsafe.user.first_name
-            : "Guest";
-        const res = await fetch(API_BASE + "/api/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ telegramId, name }),
-        });
-        const data = await res.json();
-        if (!res.ok || data.error) throw new Error(data.error || "Ошибка регистрации");
-        return data;
-      } catch (e) {
-        statusEl.textContent = e.message;
-        return null;
-      }
+    // --- Профиль и депозит: только локально ---
+    function initProfile() {
+      userBalance = 100;
+      balanceEl.textContent = userBalance.toFixed(2);
+      statusEl.textContent = "Демо-режим: у тебя 100 монет";
     }
 
-    async function apiProfile() {
-      try {
-        const res = await fetch(
-          API_BASE + "/api/profile?telegramId=" + encodeURIComponent(telegramId)
-        );
-        if (res.status === 404) return null;
-        const data = await res.json();
-        return data;
-      } catch (e) {
-        return null;
-      }
-    }
-
-    async function apiDeposit(amount) {
-      try {
-        const res = await fetch(API_BASE + "/api/deposit", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ telegramId, amount }),
-        });
-        const data = await res.json();
-        if (!res.ok || data.error) throw new Error(data.error || "Ошибка депозита");
-        return data;
-      } catch (e) {
-        statusEl.textContent = e.message;
-        return null;
-      }
-    }
-
-    async function apiBet(amount) {
-      try {
-        const res = await fetch(API_BASE + "/api/bet", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ telegramId, amount }),
-        });
-        const data = await res.json();
-        if (!res.ok || data.error) throw new Error(data.error || "Ошибка ставки");
-        return data;
-      } catch (e) {
-        statusEl.textContent = e.message;
-        return null;
-      }
-    }
-
-    async function apiResult(win, multiplier, bet) {
-      try {
-        const res = await fetch(API_BASE + "/api/result", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ telegramId, win, multiplier, bet }),
-        });
-        const data = await res.json();
-        return data;
-      } catch (e) {
-        return null;
-      }
-    }
-
-    async function initProfile() {
-      const profile = await apiProfile();
-      if (profile && profile.balance != null) {
-        isRegistered = true;
-        userBalance = profile.balance;
-        balanceEl.textContent = userBalance.toFixed(2);
-        statusEl.textContent = "Баланс загружен";
-      } else {
-        isRegistered = false;
-        userBalance = 0;
-        balanceEl.textContent = "0.00";
-        statusEl.textContent = "Зарегистрируйся, чтобы играть на баланс";
-      }
-    }
-
-    registerBtn.addEventListener("click", async () => {
-      if (isRegistered) {
-        statusEl.textContent = "Ты уже зарегистрирован";
-        return;
-      }
-      const res = await apiRegister();
-      if (res && res.balance != null) {
-        isRegistered = true;
-        userBalance = res.balance;
-        balanceEl.textContent = userBalance.toFixed(2);
-        statusEl.textContent = "Регистрация успешна";
-      }
-    });
-
-    depositBtn.addEventListener("click", async () => {
-      if (!isRegistered) {
-        statusEl.textContent = "Сначала зарегистрируйся";
-        return;
-      }
-      const amountStr = prompt("Сумма депозита (игровые монеты):");
+    depositBtn.addEventListener("click", () => {
+      const amountStr = prompt("Пополнить баланс (монеты):");
       const amount = parseFloat(amountStr || "0");
       if (!amount || amount <= 0) return;
-
-      const res = await apiDeposit(amount);
-      if (res && res.balance != null) {
-        userBalance = res.balance;
-        balanceEl.textContent = userBalance.toFixed(2);
-        statusEl.textContent = "Депозит зачислен";
-      }
+      userBalance += amount;
+      balanceEl.textContent = userBalance.toFixed(2);
+      statusEl.textContent = "Баланс пополнен";
     });
 
-    async function startRound() {
+    function startRound() {
       if (!allLoaded) return;
       baseBet = Math.max(parseFloat(betInput.value) || 0, 0.1);
       betInput.value = baseBet.toFixed(2);
 
-      if (!isRegistered) {
-        statusEl.textContent = "Нужно зарегистрироваться";
-        return;
-      }
       if (userBalance < baseBet) {
-        statusEl.textContent = "Недостаточно средств, пополни баланс";
+        statusEl.textContent = "Недостаточно монет. Пополни баланс.";
         return;
       }
 
-      statusEl.textContent = "Ставка отправляется...";
-      startBtn.disabled = true;
-
-      const betResp = await apiBet(baseBet);
-      if (!betResp) {
-        startBtn.disabled = false;
-        return;
-      }
-      if (betResp.balance != null) {
-        userBalance = betResp.balance;
-        balanceEl.textContent = userBalance.toFixed(2);
-      }
+      userBalance -= baseBet;
+      balanceEl.textContent = userBalance.toFixed(2);
 
       resetRound();
       state = "flying";
       statusEl.textContent = "Робинзон в полёте...";
+      startBtn.disabled = true;
     }
 
     startBtn.addEventListener("click", () => {
@@ -460,11 +315,12 @@
       }
     });
 
-    async function finishRound(win) {
-      const res = await apiResult(win, multiplier, baseBet);
-      if (res && res.balance != null) {
-        userBalance = res.balance;
+    function finishRound(win) {
+      if (win) {
+        const winAmount = baseBet * multiplier;
+        userBalance += winAmount;
         balanceEl.textContent = userBalance.toFixed(2);
+        statusEl.textContent += ` Выигрыш: ${winAmount.toFixed(2)}.`;
       }
     }
 
