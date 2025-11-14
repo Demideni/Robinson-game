@@ -253,6 +253,7 @@
       bg: "assets/bg_ocean.png",
       rob: "assets/robinson.png",
       island: "assets/island_long.png",
+      // одна картинка птицы, не спрайт-лист
       bird: "assets/bird_spritesheet.png",
       x2: "assets/bonus_x2.png",
       x3: "assets/bonus_x3.png",
@@ -286,7 +287,6 @@
 
     const HERO_X_REL = 0.25;
     const OBJECT_SPEED = 380;
-    // множитель теперь НЕ растёт по времени, только от бонусов
     const ISLAND_BASE_PROB = 0.012;
     const BIRD_PROB   = 0.012;
     const BONUS_PROB  = 0.1;
@@ -295,7 +295,6 @@
     let gravity = GRAVITY_BASE;
 
     let bonusPulse = 0;
-    let birdAnimTime = 0;
 
     function resetRound() {
       const w = canvas.width / window.devicePixelRatio;
@@ -305,7 +304,7 @@
         x: w * HERO_X_REL,
         y: h * 0.5,
         vy: -170,
-        width: 72,   // уменьшили Робинзона на 25% (было 96)
+        width: 72,   // уменьшенный Робинзон
         height: 72,
       };
 
@@ -315,7 +314,6 @@
       multiplier = 1;
       lastTs = performance.now();
       bonusPulse = 0;
-      birdAnimTime = 0;
       multiplierEl.textContent = "1.00x";
 
       const baseX = w * 0.55;
@@ -375,7 +373,7 @@
       }
     });
 
-    // Заставка: просто убираем оверлей по нажатию
+    // Заставка: убираем оверлей по нажатию
     splashStartBtn.addEventListener("click", () => {
       splash.classList.add("hidden");
     });
@@ -423,7 +421,7 @@
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
 
-      const size = 72;
+      const size = 58; // птица на 20% меньше (от 72)
       const y = h * (0.35 + Math.random() * 0.35);
       const x = w + size * 0.8;
       const last = getLastOfType("bird");
@@ -496,10 +494,9 @@
       if (state !== "flying") return;
 
       time += dt;
-      birdAnimTime += dt;
       bonusPulse = Math.max(0, bonusPulse - dt);
 
-      // Множитель больше НЕ растёт по времени, только меняется в бонусах
+      // Множитель не растёт по времени — только из бонусов
 
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
@@ -649,19 +646,9 @@
           );
         }
         if (o.type === "bird" && assets.bird) {
-          const img = assets.bird;
-          const frames = 8;
-          const frameW = img.width / frames;
-          const frameH = img.height;
-          const fps = 12;
-          const frame = Math.floor(birdAnimTime * fps) % frames;
-
+          // одна статичная картинка птицы
           ctx.drawImage(
-            img,
-            frame * frameW,
-            0,
-            frameW,
-            frameH,
+            assets.bird,
             o.x - o.w / 2,
             o.y - o.h / 2,
             o.w,
