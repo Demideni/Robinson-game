@@ -87,8 +87,7 @@
       display: block;
     }
 
-    /* Нижняя панель под большой старт-кнопкой */
-
+    /* Нижняя панель */
     #bottom-bar {
       position: absolute;
       left: 0;
@@ -103,10 +102,6 @@
       z-index: 20;
     }
 
-    #bottom-bet-label {
-      font-size: 14px;
-    }
-
     #bet-input {
       width: 80px;
       padding: 8px 8px;
@@ -117,8 +112,8 @@
     }
 
     #start-btn {
-      padding: 12px 32px;          /* больше кнопка */
-      font-size: 18px;             /* крупнее текст */
+      padding: 12px 32px;
+      font-size: 18px;
       border-radius: 999px;
       min-width: 140px;
     }
@@ -131,7 +126,6 @@
     </div>
 
     <div id="auth-panel">
-      <!-- оставляем только депозит, регистрации больше нет -->
       <button id="deposit-btn">Депозит</button>
     </div>
 
@@ -142,9 +136,8 @@
     <div id="status-text">Сделай ставку и нажми СТАРТ</div>
   </div>
 
-  <!-- нижняя панель, удобная для большого пальца -->
   <div id="bottom-bar">
-    <span id="bottom-bet-label">Ставка:</span>
+    <span>Ставка:</span>
     <input id="bet-input" type="number" min="0.1" step="0.1" value="1" />
     <button id="start-btn">СТАРТ</button>
   </div>
@@ -164,7 +157,6 @@
     const balanceEl = document.getElementById("balance");
     const depositBtn = document.getElementById("deposit-btn");
 
-    // --- Resize ---
     function resizeCanvas() {
       const rect = canvas.getBoundingClientRect();
       canvas.width = rect.width * window.devicePixelRatio;
@@ -174,13 +166,12 @@
     window.addEventListener("resize", resizeCanvas);
     resizeCanvas();
 
-    // --- ASSETS ---
     function loadImage(src) {
-      return new Promise((resolve, reject) => {
+      return new Promise((res, rej) => {
         const img = new Image();
         img.src = src;
-        img.onload = () => resolve(img);
-        img.onerror = reject;
+        img.onload = () => res(img);
+        img.onerror = rej;
       });
     }
 
@@ -210,7 +201,6 @@
       initProfile();
     })();
 
-    // --- GAME STATE ---
     let state = "idle";
     let robinson;
     let objects;
@@ -219,7 +209,6 @@
     let multiplier;
     let baseBet = 1;
 
-    // локальный баланс без регистрации/бэкенда
     let userBalance = 100;
 
     const HERO_X_REL = 0.25;
@@ -256,7 +245,6 @@
       birdAnimTime = 0;
       multiplierEl.textContent = "1.00x";
 
-      // стартовые бонусы: теперь 128x128
       const baseX = w * 0.55;
       const spacing = 150;
       const startBonuses = ["x2", "x3", "x5", "x2", "x10", "x3"];
@@ -268,13 +256,12 @@
           kind,
           x: baseX + i * spacing,
           y: robinson.y + yOffset,
-          w: 128,
-          h: 128,
+          w: 32,   // ← 32x32 бонусы
+          h: 32,
         });
       });
     }
 
-    // --- Профиль и депозит: только локально ---
     function initProfile() {
       userBalance = 100;
       balanceEl.textContent = userBalance.toFixed(2);
@@ -324,7 +311,6 @@
       }
     }
 
-    // SPAWN HELPERS
     function getLastOfType(type) {
       for (let i = objects.length - 1; i >= 0; i--) {
         if (objects[i].type === type) return objects[i];
@@ -401,7 +387,7 @@
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
 
-      const size = 128; // бонусы 128x128
+      const size = 32; // ← бонусы 32×32
       const y = h * (0.4 + Math.random() * 0.4);
       const x = w + size * 0.6;
       const last = getLastOfType("bonus");
