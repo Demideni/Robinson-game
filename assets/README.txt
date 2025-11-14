@@ -1,0 +1,1 @@
+Помести сюда PNG спрайты и фон (bg_ocean.png, robinson.png, island_long.png, bird_spritesheet.png, bonus_x2.png, ...).

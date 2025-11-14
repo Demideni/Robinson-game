@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Робинзон — игра</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #021b3b;
+      color: #fff;
+    }
+    #ui {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 8px 10px 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      background: linear-gradient(to bottom, rgba(0,0,0,.6), rgba(0,0,0,0));
+      z-index: 10;
+      pointer-events: none;
+    }
+    #ui-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      pointer-events: auto;
+    }
+    #logo {
+      font-weight: 800;
+      letter-spacing: 1px;
+      font-size: 18px;
+    }
+    #bet-panel {
+      display: flex;
+      flex: 1;
+      justify-content: flex-end;
+      gap: 6px;
+      align-items: center;
+    }
+    #bet-input {
+      width: 80px;
+      padding: 4px 6px;
+      border-radius: 6px;
+      border: none;
+      font-size: 14px;
+      text-align: right;
+    }
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      background: #ffb000;
+      color: #421b00;
+      box-shadow: 0 2px 6px rgba(0,0,0,.4);
+      white-space: nowrap;
+    }
+    button:disabled {
+      opacity: 0.4;
+      cursor: default;
+      box-shadow: none;
+    }
+    #auth-panel {
+      display: flex;
+      gap: 6px;
+      justify-content: flex-end;
+      pointer-events: auto;
+      padding: 0 2px;
+    }
+    #stats {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      text-shadow: 0 1px 3px rgba(0,0,0,.7);
+      padding: 0 2px;
+    }
+    #status-text {
+      font-weight: 600;
+    }
+    #balance-box {
+      font-weight: 600;
+    }
+    #canvas-container {
+      position: absolute;
+      inset: 0;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div id="ui">
+    <div id="ui-top">
+      <div id="logo">🏝️ РОБИНЗОН</div>
+      <div id="bet-panel">
+        <span>Ставка:</span>
+        <input id="bet-input" type="number" min="0.1" step="0.1" value="1" />
+        <button id="start-btn">СТАРТ</button>
+      </div>
+    </div>
+
+    <div id="auth-panel">
+      <button id="register-btn">Регистрация</button>
+      <button id="deposit-btn">Депозит</button>
+    </div>
+
+    <div id="stats">
+      <div>Множитель: <span id="multiplier">1.00x</span></div>
+      <div id="balance-box">Баланс: <span id="balance">0.00</span> 🪙</div>
+    </div>
+    <div id="status-text">Сделай ставку и нажми СТАРТ</div>
+  </div>
+
+  <div id="canvas-container">
+    <canvas id="game"></canvas>
+  </div>
+
+  <script>
+    // --- Telegram WebApp ---
+    const tg = window.Telegram ? window.Telegram.WebApp : null;
+    let telegramId = null;
+    if (tg) {
+      tg.ready();
+      telegramId =
+        tg.initDataUnsafe &&
+        tg.initDataUnsafe.user &&
+        tg.initDataUnsafe.user.id
+          ? String(tg.initDataUnsafe.user.id)
+          : null;
+    }
+    if (!telegramId) {
+      telegramId = "test-user-1"; // fallback для браузера
+    }
+
+    // TODO: поменяй на свой HTTPS-бэкенд
+    const API_BASE = "https://your-backend-domain.com";
+
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+
+    const multiplierEl = document.getElementById("multiplier");
+    const statusEl = document.getElementById("status-text");
+    const startBtn = document.getElementById("start-btn");
+    const betInput = document.getElementById("bet-input");
+    const balanceEl = document.getElementById("balance");
+    const registerBtn = document.getElementById("register-btn");
+    const depositBtn = document.getElementById("deposit-btn");
+
+    // --- Resize ---
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * window.devicePixelRatio;
+      canvas.height = rect.height * window.devicePixelRatio;
+      ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+    }
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+
+    // --- ASSETS ---
+    function loadImage(src) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.src = src;
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+      });
+    }
+
+    const assets = {};
+    const ASSET_LIST = {
+      bg: "assets/bg_ocean.png",
+      rob: "assets/robinson.png",
+      island: "assets/island_long.png",
+      bird: "assets/bird_spritesheet.png", // новый спрайт-лист (8 кадров)
+      x2: "assets/bonus_x2.png",
+      x3: "assets/bonus_x3.png",
+      x5: "assets/bonus_x5.png",
+      x10: "assets/bonus_x10.png",
+      x20: "assets/bonus_x20.png",
+      x50: "assets/bonus_x50.png",
+      x100: "assets/bonus_x100.png",
+    };
+
+    let allLoaded = false;
+
+    (async function preload() {
+      for (const [key, src] of Object.entries(ASSET_LIST)) {
+        assets[key] = await loadImage(src).catch(() => null);
+      }
+      allLoaded = true;
+      statusEl.textContent = "Готово к игре";
+      initProfile(); // подтягиваем баланс после загрузки ассетов
+    })();
+
+    // --- GAME STATE ---
+    let state = "idle";
+    let robinson;
+    let objects;
+    let time;
+    let lastTs;
+    let multiplier;
+    let baseBet = 1;
+
+    // Баланс / пользователь
+    let userBalance = 0;
+    let isRegistered = false;
+
+    // Параметры полёта и спавна
+    const HERO_X_REL = 0.25;
+    const OBJECT_SPEED = 380;
+    const GROWTH_PER_SEC = 0.9;
+    const ISLAND_BASE_PROB = 0.012;
+    const BIRD_PROB   = 0.012;
+    const BONUS_PROB  = 0.1;
+    const WATER_LINE_REL = 0.92;
+    const GRAVITY_BASE = 75;
+    let gravity = GRAVITY_BASE;
+
+    let bonusPulse = 0;
+    let birdAnimTime = 0;
+
+    function resetRound() {
+      const w = canvas.width / window.devicePixelRatio;
+      const h = canvas.height / window.devicePixelRatio;
+
+      // Старт: немного вверх, дуга, чуть ниже середины
+      robinson = {
+        x: w * HERO_X_REL,
+        y: h * 0.5,
+        vy: -170,
+        width: 96,
+        height: 96,
+      };
+
+      gravity = GRAVITY_BASE;
+      objects = [];
+      time = 0;
+      multiplier = 1;
+      lastTs = performance.now();
+      bonusPulse = 0;
+      birdAnimTime = 0;
+      multiplierEl.textContent = "1.00x";
+
+      // Стартовая цепочка бонусов по траектории и на разных высотах
+      const baseX = w * 0.55;
+      const spacing = 90;
+      const startBonuses = ["x2", "x3", "x5", "x2", "x10", "x3"];
+
+      startBonuses.forEach((kind, i) => {
+        const yOffset = (Math.random() * 0.12 - 0.06) * h;
+        objects.push({
+          type: "bonus",
+          kind,
+          x: baseX + i * spacing,
+          y: robinson.y + yOffset,
+          w: 80,
+          h: 80,
+        });
+      });
+    }
+
+    // --- API HELPERS (регистрация, профиль, депозит, ставки) ---
+    async function apiRegister() {
+      try {
+        const name =
+          tg && tg.initDataUnsafe && tg.initDataUnsafe.user
+            ? tg.initDataUnsafe.user.first_name
+            : "Guest";
+        const res = await fetch(API_BASE + "/api/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ telegramId, name }),
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || "Ошибка регистрации");
+        return data;
+      } catch (e) {
+        statusEl.textContent = e.message;
+        return null;
+      }
+    }
+
+    async function apiProfile() {
+      try {
+        const res = await fetch(
+          API_BASE + "/api/profile?telegramId=" + encodeURIComponent(telegramId)
+        );
+        if (res.status === 404) return null;
+        const data = await res.json();
+        return data;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    async function apiDeposit(amount) {
+      try {
+        const res = await fetch(API_BASE + "/api/deposit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ telegramId, amount }),
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || "Ошибка депозита");
+        return data;
+      } catch (e) {
+        statusEl.textContent = e.message;
+        return null;
+      }
+    }
+
+    async function apiBet(amount) {
+      try {
+        const res = await fetch(API_BASE + "/api/bet", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ telegramId, amount }),
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || "Ошибка ставки");
+        return data;
+      } catch (e) {
+        statusEl.textContent = e.message;
+        return null;
+      }
+    }
+
+    async function apiResult(win, multiplier, bet) {
+      try {
+        const res = await fetch(API_BASE + "/api/result", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ telegramId, win, multiplier, bet }),
+        });
+        const data = await res.json();
+        return data;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    async function initProfile() {
+      const profile = await apiProfile();
+      if (profile && profile.balance != null) {
+        isRegistered = true;
+        userBalance = profile.balance;
+        balanceEl.textContent = userBalance.toFixed(2);
+        statusEl.textContent = "Баланс загружен";
+      } else {
+        isRegistered = false;
+        userBalance = 0;
+        balanceEl.textContent = "0.00";
+        statusEl.textContent = "Зарегистрируйся, чтобы играть на баланс";
+      }
+    }
+
+    // --- UI HANDLERS ---
+    registerBtn.addEventListener("click", async () => {
+      if (isRegistered) {
+        statusEl.textContent = "Ты уже зарегистрирован";
+        return;
+      }
+      const res = await apiRegister();
+      if (res && res.balance != null) {
+        isRegistered = true;
+        userBalance = res.balance;
+        balanceEl.textContent = userBalance.toFixed(2);
+        statusEl.textContent = "Регистрация успешна";
+      }
+    });
+
+    depositBtn.addEventListener("click", async () => {
+      if (!isRegistered) {
+        statusEl.textContent = "Сначала зарегистрируйся";
+        return;
+      }
+      const amountStr = prompt("Сумма депозита (игровые монеты):");
+      const amount = parseFloat(amountStr || "0");
+      if (!amount || amount <= 0) return;
+
+      const res = await apiDeposit(amount);
+      if (res && res.balance != null) {
+        userBalance = res.balance;
+        balanceEl.textContent = userBalance.toFixed(2);
+        statusEl.textContent = "Депозит зачислен";
+      }
+    });
+
+    async function startRound() {
+      if (!allLoaded) return;
+      baseBet = Math.max(parseFloat(betInput.value) || 0, 0.1);
+      betInput.value = baseBet.toFixed(2);
+
+      if (!isRegistered) {
+        statusEl.textContent = "Нужно зарегистрироваться";
+        return;
+      }
+      if (userBalance < baseBet) {
+        statusEl.textContent = "Недостаточно средств, пополни баланс";
+        return;
+      }
+
+      statusEl.textContent = "Ставка отправляется...";
+      startBtn.disabled = true;
+
+      const betResp = await apiBet(baseBet);
+      if (!betResp) {
+        startBtn.disabled = false;
+        return;
+      }
+      if (betResp.balance != null) {
+        userBalance = betResp.balance;
+        balanceEl.textContent = userBalance.toFixed(2);
+      }
+
+      resetRound();
+      state = "flying";
+      statusEl.textContent = "Робинзон в полёте...";
+    }
+
+    startBtn.addEventListener("click", () => {
+      if (state === "idle" || state === "won" || state === "lost") {
+        startRound();
+      }
+    });
+
+    async function finishRound(win) {
+      const res = await apiResult(win, multiplier, baseBet);
+      if (res && res.balance != null) {
+        userBalance = res.balance;
+        balanceEl.textContent = userBalance.toFixed(2);
+      }
+    }
+
+    // --- SPAWN HELPERS ---
+    function getLastOfType(type) {
+      for (let i = objects.length - 1; i >= 0; i--) {
+        if (objects[i].type === type) return objects[i];
+      }
+      return null;
+    }
+
+    function spawnIsland() {
+      const w = canvas.width / window.devicePixelRatio;
+      const h = canvas.height / window.devicePixelRatio;
+
+      const width = 260;
+      const height = 80;
+      const y = h * 0.93; // почти у воды
+
+      const x = w + width * 0.6;
+      const last = getLastOfType("island");
+      const minGap = 260;
+
+      if (last && last.x - x < minGap) return;
+
+      objects.push({
+        type: "island",
+        x,
+        y,
+        w: width,
+        h: height,
+      });
+    }
+
+    function spawnBird() {
+      const w = canvas.width / window.devicePixelRatio;
+      const h = canvas.height / window.devicePixelRatio;
+
+      const size = 72;
+      const y = h * (0.35 + Math.random() * 0.35); // 0.35–0.7
+      const x = w + size * 0.8;
+      const last = getLastOfType("bird");
+      const minGap = 180;
+
+      if (last && last.x - x < minGap) return;
+
+      objects.push({
+        type: "bird",
+        x,
+        y,
+        w: size,
+        h: size,
+      });
+    }
+
+    const BONUS_WEIGHTS = [
+      { key: "x2",   w: 40 },
+      { key: "x3",   w: 30 },
+      { key: "x5",   w: 15 },
+      { key: "x10",  w: 8  },
+      { key: "x20",  w: 4  },
+      { key: "x50",  w: 2  },
+      { key: "x100", w: 1  },
+    ];
+
+    function randomBonusKey() {
+      let total = 0;
+      for (const b of BONUS_WEIGHTS) total += b.w;
+      let r = Math.random() * total;
+      for (const b of BONUS_WEIGHTS) {
+        if (r < b.w) return b.key;
+        r -= b.w;
+      }
+      return "x2";
+    }
+
+    function spawnBonus() {
+      const w = canvas.width / window.devicePixelRatio;
+      const h = canvas.height / window.devicePixelRatio;
+
+      const size = 80;
+      const y = h * (0.4 + Math.random() * 0.4); // ниже, в рабочей зоне
+      const x = w + size * 0.6;
+      const last = getLastOfType("bonus");
+      const minGap = 150;
+
+      if (last && last.x - x < minGap) return;
+
+      objects.push({
+        type: "bonus",
+        kind: randomBonusKey(),
+        x,
+        y,
+        w: size,
+        h: size,
+      });
+    }
+
+    // --- COLLISION ---
+    function isColliding(a, b) {
+      return !(
+        a.x + a.w < b.x ||
+        a.x > b.x + b.w ||
+        a.y + a.h < b.y ||
+        a.y > b.y + b.h
+      );
+    }
+
+    // --- UPDATE ---
+    function update(dt) {
+      if (state !== "flying") return;
+
+      time += dt;
+      birdAnimTime += dt;
+      bonusPulse = Math.max(0, bonusPulse - dt);
+
+      multiplier += GROWTH_PER_SEC * dt;
+      multiplierEl.textContent = multiplier.toFixed(2) + "x";
+
+      const w = canvas.width / window.devicePixelRatio;
+      const h = canvas.height / window.devicePixelRatio;
+      const waterY = h * WATER_LINE_REL;
+
+      // Полёт по дуге
+      robinson.vy += gravity * dt;
+      robinson.y += robinson.vy * dt;
+
+      const topLimit = h * 0.12;
+      if (robinson.y < topLimit) {
+        robinson.y = topLimit;
+        if (robinson.vy < 0) robinson.vy = 0;
+      }
+
+      // Падение в воду — конец раунда
+      if (robinson.y + robinson.height / 2 >= waterY) {
+        state = "lost";
+        statusEl.textContent = "Робинзон упал в воду";
+        startBtn.disabled = false;
+        finishRound(false);
+        return;
+      }
+
+      // Спавн объектов
+      const islandProb = Math.max(0.0005, ISLAND_BASE_PROB / (1 + multiplier * 0.1));
+      if (Math.random() < islandProb) spawnIsland();
+      if (Math.random() < BIRD_PROB)  spawnBird();
+      if (Math.random() < BONUS_PROB) spawnBonus();
+
+      // Движение объектов
+      const dx = OBJECT_SPEED * dt;
+      objects.forEach((o) => { o.x -= dx; });
+
+      // Уменьшенный хитбокс Робинзона
+      const heroBox = {
+        x: robinson.x - robinson.width * 0.35,
+        y: robinson.y - robinson.height * 0.35,
+        w: robinson.width * 0.7,
+        h: robinson.height * 0.7,
+      };
+
+      // Столкновения
+      for (const o of objects) {
+        const ow = o.w * 0.8;
+        const oh = o.h * 0.8;
+        const box = {
+          x: o.x - ow / 2,
+          y: o.y - oh / 2,
+          w: ow,
+          h: oh,
+        };
+
+        if (!isColliding(heroBox, box)) continue;
+
+        if (o.type === "island") {
+          state = "won";
+          statusEl.textContent = "Победа! Робинзон приземлился на остров";
+          startBtn.disabled = false;
+          o._dead = true;
+          finishRound(true);
+          break;
+        }
+
+        if (o.type === "bird") {
+          multiplier = Math.max(1, multiplier / 2);
+          statusEl.textContent = "Птица! Выигрыш уменьшен";
+          gravity = Math.min(gravity + 50, GRAVITY_BASE * 2.5);
+          robinson.vy += 50;
+          o._dead = true;
+        }
+
+        if (o.type === "bonus") {
+          const val = parseInt(o.kind.slice(1));
+          multiplier *= val;
+          statusEl.textContent = "Бонус " + o.kind + "!";
+          robinson.vy = -230;
+          gravity = Math.max(GRAVITY_BASE * 0.8, gravity - 20);
+          bonusPulse = 0.25;
+          o._dead = true;
+        }
+      }
+
+      // чистим объекты
+      objects = objects.filter(o => o.x + o.w > -50 && !o._dead);
+    }
+
+    // --- DRAW ---
+    function drawBackground() {
+      const bg = assets.bg;
+      const w = canvas.width / window.devicePixelRatio;
+      const h = canvas.height / window.devicePixelRatio;
+
+      if (bg) {
+        const scale = h / bg.height;
+        const imgW = bg.width * scale;
+        for (let x = 0; x < w + imgW; x += imgW) {
+          ctx.drawImage(bg, x, 0, imgW, h);
+        }
+      } else {
+        ctx.fillStyle = "#4cc3ff";
+        ctx.fillRect(0, 0, w, h);
+      }
+    }
+
+    function drawHero() {
+      const img = assets.rob;
+      if (!img) return;
+
+      const pulse = bonusPulse > 0 ? (bonusPulse / 0.25) : 0;
+      const scale = 1 + 0.25 * pulse;
+
+      ctx.save();
+      ctx.translate(robinson.x, robinson.y);
+
+      if (pulse > 0) {
+        ctx.beginPath();
+        ctx.arc(0, 0, Math.max(robinson.width, robinson.height) * 0.7 * scale, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(255, 220, 120, 0.7)";
+        ctx.lineWidth = 4;
+        ctx.stroke();
+      }
+
+      ctx.scale(scale, scale);
+      ctx.drawImage(
+        img,
+        -robinson.width / 2,
+        -robinson.height / 2,
+        robinson.width,
+        robinson.height
+      );
+      ctx.restore();
+    }
+
+    function drawObjects() {
+      for (const o of objects) {
+        if (o.type === "island" && assets.island) {
+          ctx.drawImage(
+            assets.island,
+            o.x - o.w / 2,
+            o.y - o.h / 2,
+            o.w,
+            o.h
+          );
+        }
+        if (o.type === "bonus" && assets[o.kind]) {
+          ctx.drawImage(
+            assets[o.kind],
+            o.x - o.w / 2,
+            o.y - o.h / 2,
+            o.w,
+            o.h
+          );
+        }
+        if (o.type === "bird" && assets.bird) {
+          const img = assets.bird;
+          const frames = 8; // новый спрайт-лист — 8 кадров
+          const frameW = img.width / frames;
+          const frameH = img.height;
+          const fps = 12;
+          const frame = Math.floor(birdAnimTime * fps) % frames;
+
+          ctx.drawImage(
+            img,
+            frame * frameW,
+            0,
+            frameW,
+            frameH,
+            o.x - o.w / 2,
+            o.y - o.h / 2,
+            o.w,
+            o.h
+          );
+        }
+      }
+    }
+
+    // --- GAME LOOP ---
+    function render() {
+      const now = performance.now();
+      const dt = (now - lastTs) / 1000;
+      lastTs = now;
+
+      update(dt);
+
+      const w = canvas.width / window.devicePixelRatio;
+      const h = canvas.height / window.devicePixelRatio;
+      ctx.clearRect(0, 0, w, h);
+
+      drawBackground();
+      if (state !== "idle") {
+        drawObjects();
+        drawHero();
+      }
+
+      requestAnimationFrame(render);
+    }
+
+    lastTs = performance.now();
+    resetRound();
+    requestAnimationFrame(render);
+  </script>
+</body>
+</html>
