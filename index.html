@@ -22,11 +22,22 @@
       padding: 8px 10px 4px;
       display: flex;
       flex-direction: column;
+      align-items: center; /* центрируем весь блок UI */
       gap: 4px;
       background: linear-gradient(to bottom, rgba(0,0,0,.6), rgba(0,0,0,0));
       z-index: 10;
       pointer-events: none;
     }
+    /* Все основные строки UI ограничиваем по ширине и центрируем */
+    #ui-top,
+    #auth-panel,
+    #stats,
+    #status-text {
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
     #ui-top {
       display: flex;
       align-items: center;
@@ -38,6 +49,7 @@
       font-weight: 800;
       letter-spacing: 1px;
       font-size: 18px;
+      text-shadow: 0 1px 3px rgba(0,0,0,.8);
     }
     #bet-panel {
       display: flex;
@@ -85,11 +97,17 @@
       text-shadow: 0 1px 3px rgba(0,0,0,.7);
       padding: 0 2px;
     }
+    #multiplier {
+      font-size: 18px;
+      font-weight: 800; /* делаем множитель заметнее */
+    }
     #status-text {
       font-weight: 600;
+      text-shadow: 0 1px 3px rgba(0,0,0,.8);
     }
     #balance-box {
       font-weight: 600;
+      font-size: 16px;
     }
     #canvas-container {
       position: absolute;
@@ -99,6 +117,40 @@
       width: 100%;
       height: 100%;
       display: block;
+    }
+
+    /* Адаптив под телефон */
+    @media (max-width: 480px) {
+      #ui {
+        padding: 6px 6px 4px;
+      }
+      #logo {
+        font-size: 16px;
+      }
+      #ui-top {
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+      }
+      #bet-panel {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      button {
+        padding: 6px 10px;
+        font-size: 13px;
+      }
+      #bet-input {
+        width: 70px;
+      }
+      #stats {
+        font-size: 13px;
+      }
+      #status-text {
+        text-align: center;
+        font-size: 13px;
+      }
     }
   </style>
 </head>
@@ -146,8 +198,12 @@
       telegramId = "test-user-1"; // fallback для браузера
     }
 
-    // TODO: поменяй на свой HTTPS-бэкенд
-    const API_BASE = "https://robinson-games.onrender.com";
+    // --- API BASE: локалка vs прод (Render) ---
+    const API_BASE =
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1"
+        ? "http://localhost:3001"
+        : "https://robinson-games.onrender.com";
 
     const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
