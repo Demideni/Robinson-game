@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <title>Робинзон — игра</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#021b3b" />
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
@@ -87,19 +88,24 @@
       display: block;
     }
 
-    /* Нижняя панель */
+    /* Нижняя панель со ставкой и кнопкой Старт */
     #bottom-bar {
       position: absolute;
       left: 0;
       right: 0;
-      bottom: 10px;
-      padding: 6px 10px env(safe-area-inset-bottom);
+      top: 75%;               /* центр нижней половины экрана */
+      transform: translateY(-50%);
+      padding: 6px 10px;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
       pointer-events: auto;
       z-index: 20;
+    }
+
+    #bottom-bar span {
+      font-size: 14px;
     }
 
     #bet-input {
@@ -117,9 +123,72 @@
       border-radius: 999px;
       min-width: 140px;
     }
+
+    /* Мобильная заставка */
+    #splash {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at top, #0747a6 0%, #021b3b 40%, #000814 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+      transition: opacity 0.4s ease;
+    }
+    #splash.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    #splash-inner {
+      width: 100%;
+      max-width: 360px;
+      padding: 24px 20px calc(24px + env(safe-area-inset-bottom));
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    #splash-logo {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+    }
+    #splash-logo span {
+      font-size: 30px;
+      margin-right: 6px;
+    }
+    #splash-subtitle {
+      font-size: 14px;
+      opacity: 0.85;
+    }
+    #splash-hint {
+      font-size: 12px;
+      opacity: 0.6;
+    }
+    #splash-start-btn {
+      margin-top: 4px;
+      padding: 12px 24px;
+      font-size: 16px;
+      width: 100%;
+    }
   </style>
 </head>
 <body>
+  <!-- Заставка для мобильных -->
+  <div id="splash">
+    <div id="splash-inner">
+      <div id="splash-logo"><span>🏝️</span>РОБИНЗОН</div>
+      <div id="splash-subtitle">
+        Лети к острову, собирай бонусы и умножай выигрыш.
+      </div>
+      <button id="splash-start-btn">Начать игру</button>
+      <div id="splash-hint">
+        Совет: выбери ставку, а затем нажми СТАРТ внизу экрана.
+      </div>
+    </div>
+  </div>
+
+  <!-- Верхний UI -->
   <div id="ui">
     <div id="ui-top">
       <div id="logo">🏝️ РОБИНЗОН</div>
@@ -136,6 +205,7 @@
     <div id="status-text">Сделай ставку и нажми СТАРТ</div>
   </div>
 
+  <!-- Нижний блок со ставкой и Старт -->
   <div id="bottom-bar">
     <span>Ставка:</span>
     <input id="bet-input" type="number" min="0.1" step="0.1" value="1" />
@@ -156,6 +226,9 @@
     const betInput = document.getElementById("bet-input");
     const balanceEl = document.getElementById("balance");
     const depositBtn = document.getElementById("deposit-btn");
+
+    const splash = document.getElementById("splash");
+    const splashStartBtn = document.getElementById("splash-start-btn");
 
     function resizeCanvas() {
       const rect = canvas.getBoundingClientRect();
@@ -213,7 +286,7 @@
 
     const HERO_X_REL = 0.25;
     const OBJECT_SPEED = 380;
-    const GROWTH_PER_SEC = 0.9;
+    // множитель теперь НЕ растёт по времени, только от бонусов
     const ISLAND_BASE_PROB = 0.012;
     const BIRD_PROB   = 0.012;
     const BONUS_PROB  = 0.1;
@@ -232,8 +305,8 @@
         x: w * HERO_X_REL,
         y: h * 0.5,
         vy: -170,
-        width: 96,
-        height: 96,
+        width: 72,   // уменьшили Робинзона на 25% (было 96)
+        height: 72,
       };
 
       gravity = GRAVITY_BASE;
@@ -256,7 +329,7 @@
           kind,
           x: baseX + i * spacing,
           y: robinson.y + yOffset,
-          w: 32,   // ← 32x32 бонусы
+          w: 32,
           h: 32,
         });
       });
@@ -300,6 +373,11 @@
       if (state === "idle" || state === "won" || state === "lost") {
         startRound();
       }
+    });
+
+    // Заставка: просто убираем оверлей по нажатию
+    splashStartBtn.addEventListener("click", () => {
+      splash.classList.add("hidden");
     });
 
     function finishRound(win) {
@@ -387,7 +465,7 @@
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
 
-      const size = 32; // ← бонусы 32×32
+      const size = 32; // бонусы 32×32
       const y = h * (0.4 + Math.random() * 0.4);
       const x = w + size * 0.6;
       const last = getLastOfType("bonus");
@@ -421,8 +499,7 @@
       birdAnimTime += dt;
       bonusPulse = Math.max(0, bonusPulse - dt);
 
-      multiplier += GROWTH_PER_SEC * dt;
-      multiplierEl.textContent = multiplier.toFixed(2) + "x";
+      // Множитель больше НЕ растёт по времени, только меняется в бонусах
 
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
@@ -483,6 +560,7 @@
 
         if (o.type === "bird") {
           multiplier = Math.max(1, multiplier / 2);
+          multiplierEl.textContent = multiplier.toFixed(2) + "x";
           statusEl.textContent = "Птица! Выигрыш уменьшен";
           gravity = Math.min(gravity + 50, GRAVITY_BASE * 2.5);
           robinson.vy += 50;
@@ -492,6 +570,7 @@
         if (o.type === "bonus") {
           const val = parseInt(o.kind.slice(1));
           multiplier *= val;
+          multiplierEl.textContent = multiplier.toFixed(2) + "x";
           statusEl.textContent = "Бонус " + o.kind + "!";
           robinson.vy = -230;
           gravity = Math.max(GRAVITY_BASE * 0.8, gravity - 20);
