@@ -199,11 +199,7 @@
     }
 
     // --- API BASE: локалка vs прод (Render) ---
-    const API_BASE =
-      window.location.hostname === "localhost" ||
-      window.location.hostname === "127.0.0.1"
-        ? "http://localhost:3001"
-        : "https://robinson-games.onrender.com";
+    const API_BASE = "https://robinson-games.onrender.com";
 
     const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
