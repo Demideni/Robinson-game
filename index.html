@@ -22,21 +22,11 @@
       padding: 8px 10px 4px;
       display: flex;
       flex-direction: column;
-      align-items: center;
       gap: 4px;
       background: linear-gradient(to bottom, rgba(0,0,0,.6), rgba(0,0,0,0));
       z-index: 10;
       pointer-events: none;
     }
-    #ui-top,
-    #auth-panel,
-    #stats,
-    #status-text {
-      width: 100%;
-      max-width: 480px;
-      margin: 0 auto;
-    }
-
     #ui-top {
       display: flex;
       align-items: center;
@@ -48,23 +38,10 @@
       font-weight: 800;
       letter-spacing: 1px;
       font-size: 18px;
-      text-shadow: 0 1px 3px rgba(0,0,0,.8);
     }
-    #bet-panel {
-      display: flex;
-      flex: 1;
-      justify-content: flex-end;
-      gap: 6px;
-      align-items: center;
-    }
-    #bet-input {
-      width: 80px;
-      padding: 4px 6px;
-      border-radius: 6px;
-      border: none;
-      font-size: 14px;
-      text-align: right;
-    }
+
+    /* верхняя панель ставок убрал — оставляем только логотип */
+
     button {
       border: none;
       border-radius: 999px;
@@ -96,17 +73,11 @@
       text-shadow: 0 1px 3px rgba(0,0,0,.7);
       padding: 0 2px;
     }
-    #multiplier {
-      font-size: 18px;
-      font-weight: 800;
-    }
     #status-text {
       font-weight: 600;
-      text-shadow: 0 1px 3px rgba(0,0,0,.8);
     }
     #balance-box {
       font-weight: 600;
-      font-size: 16px;
     }
     #canvas-container {
       position: absolute;
@@ -118,37 +89,40 @@
       display: block;
     }
 
-    @media (max-width: 480px) {
-      #ui {
-        padding: 6px 6px 4px;
-      }
-      #logo {
-        font-size: 16px;
-      }
-      #ui-top {
-        flex-direction: column;
-        align-items: center;
-        gap: 6px;
-      }
-      #bet-panel {
-        width: 100%;
-        justify-content: center;
-        flex-wrap: wrap;
-      }
-      button {
-        padding: 6px 10px;
-        font-size: 13px;
-      }
-      #bet-input {
-        width: 70px;
-      }
-      #stats {
-        font-size: 13px;
-      }
-      #status-text {
-        text-align: center;
-        font-size: 13px;
-      }
+    /* Нижняя панель под большой старт-кнопкой */
+
+    #bottom-bar {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 10px;
+      padding: 6px 10px env(safe-area-inset-bottom);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      pointer-events: auto;
+      z-index: 20;
+    }
+
+    #bottom-bet-label {
+      font-size: 14px;
+    }
+
+    #bet-input {
+      width: 80px;
+      padding: 8px 8px;
+      border-radius: 8px;
+      border: none;
+      font-size: 16px;
+      text-align: right;
+    }
+
+    #start-btn {
+      padding: 12px 32px;          /* больше кнопка */
+      font-size: 18px;             /* крупнее текст */
+      border-radius: 999px;
+      min-width: 140px;
     }
   </style>
 </head>
@@ -156,15 +130,10 @@
   <div id="ui">
     <div id="ui-top">
       <div id="logo">🏝️ РОБИНЗОН</div>
-      <div id="bet-panel">
-        <span>Ставка:</span>
-        <input id="bet-input" type="number" min="0.1" step="0.1" value="1" />
-        <button id="start-btn">СТАРТ</button>
-      </div>
     </div>
 
-    <!-- ОСТАВИЛ ТОЛЬКО ДЕПОЗИТ, БЕЗ РЕГИСТРАЦИИ -->
     <div id="auth-panel">
+      <button id="register-btn">Регистрация</button>
       <button id="deposit-btn">Депозит</button>
     </div>
 
@@ -175,14 +144,36 @@
     <div id="status-text">Сделай ставку и нажми СТАРТ</div>
   </div>
 
+  <!-- нижняя панель, удобная для большого пальца -->
+  <div id="bottom-bar">
+    <span id="bottom-bet-label">Ставка:</span>
+    <input id="bet-input" type="number" min="0.1" step="0.1" value="1" />
+    <button id="start-btn">СТАРТ</button>
+  </div>
+
   <div id="canvas-container">
     <canvas id="game"></canvas>
   </div>
 
   <script>
-    // Можно оставить поддержку Telegram.WebApp на будущее
+    // --- Telegram WebApp ---
     const tg = window.Telegram ? window.Telegram.WebApp : null;
-    if (tg) tg.ready();
+    let telegramId = null;
+    if (tg) {
+      tg.ready();
+      telegramId =
+        tg.initDataUnsafe &&
+        tg.initDataUnsafe.user &&
+        tg.initDataUnsafe.user.id
+          ? String(tg.initDataUnsafe.user.id)
+          : null;
+    }
+    if (!telegramId) {
+      telegramId = "test-user-1"; // fallback для браузера
+    }
+
+    // !!! не забудь подставить свой URL сервера
+    const API_BASE = "https://your-backend-domain.com";
 
     const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
@@ -192,6 +183,7 @@
     const startBtn = document.getElementById("start-btn");
     const betInput = document.getElementById("bet-input");
     const balanceEl = document.getElementById("balance");
+    const registerBtn = document.getElementById("register-btn");
     const depositBtn = document.getElementById("deposit-btn");
 
     // --- Resize ---
@@ -237,7 +229,7 @@
       }
       allLoaded = true;
       statusEl.textContent = "Готово к игре";
-      balanceEl.textContent = userBalance.toFixed(2);
+      initProfile();
     })();
 
     // --- GAME STATE ---
@@ -249,10 +241,9 @@
     let multiplier;
     let baseBet = 1;
 
-    // Локальный баланс без регистрации и сервера
-    let userBalance = 100; // стартовый баланс
+    let userBalance = 0;
+    let isRegistered = false;
 
-    // Параметры полёта и спавна
     const HERO_X_REL = 0.25;
     const OBJECT_SPEED = 380;
     const GROWTH_PER_SEC = 0.9;
@@ -287,8 +278,9 @@
       birdAnimTime = 0;
       multiplierEl.textContent = "1.00x";
 
+      // стартовые бонусы: теперь 128x128
       const baseX = w * 0.55;
-      const spacing = 90;
+      const spacing = 150;
       const startBonuses = ["x2", "x3", "x5", "x2", "x10", "x3"];
 
       startBonuses.forEach((kind, i) => {
@@ -298,41 +290,168 @@
           kind,
           x: baseX + i * spacing,
           y: robinson.y + yOffset,
-          w: 80,
-          h: 80,
+          w: 128,
+          h: 128,
         });
       });
     }
 
-    // --- ДЕПОЗИТ локально ---
-    depositBtn.addEventListener("click", () => {
+    // --- API HELPERS (регистрация/баланс) ---
+    async function apiRegister() {
+      try {
+        const name =
+          tg && tg.initDataUnsafe && tg.initDataUnsafe.user
+            ? tg.initDataUnsafe.user.first_name
+            : "Guest";
+        const res = await fetch(API_BASE + "/api/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ telegramId, name }),
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || "Ошибка регистрации");
+        return data;
+      } catch (e) {
+        statusEl.textContent = e.message;
+        return null;
+      }
+    }
+
+    async function apiProfile() {
+      try {
+        const res = await fetch(
+          API_BASE + "/api/profile?telegramId=" + encodeURIComponent(telegramId)
+        );
+        if (res.status === 404) return null;
+        const data = await res.json();
+        return data;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    async function apiDeposit(amount) {
+      try {
+        const res = await fetch(API_BASE + "/api/deposit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ telegramId, amount }),
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || "Ошибка депозита");
+        return data;
+      } catch (e) {
+        statusEl.textContent = e.message;
+        return null;
+      }
+    }
+
+    async function apiBet(amount) {
+      try {
+        const res = await fetch(API_BASE + "/api/bet", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ telegramId, amount }),
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || "Ошибка ставки");
+        return data;
+      } catch (e) {
+        statusEl.textContent = e.message;
+        return null;
+      }
+    }
+
+    async function apiResult(win, multiplier, bet) {
+      try {
+        const res = await fetch(API_BASE + "/api/result", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ telegramId, win, multiplier, bet }),
+        });
+        const data = await res.json();
+        return data;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    async function initProfile() {
+      const profile = await apiProfile();
+      if (profile && profile.balance != null) {
+        isRegistered = true;
+        userBalance = profile.balance;
+        balanceEl.textContent = userBalance.toFixed(2);
+        statusEl.textContent = "Баланс загружен";
+      } else {
+        isRegistered = false;
+        userBalance = 0;
+        balanceEl.textContent = "0.00";
+        statusEl.textContent = "Зарегистрируйся, чтобы играть на баланс";
+      }
+    }
+
+    registerBtn.addEventListener("click", async () => {
+      if (isRegistered) {
+        statusEl.textContent = "Ты уже зарегистрирован";
+        return;
+      }
+      const res = await apiRegister();
+      if (res && res.balance != null) {
+        isRegistered = true;
+        userBalance = res.balance;
+        balanceEl.textContent = userBalance.toFixed(2);
+        statusEl.textContent = "Регистрация успешна";
+      }
+    });
+
+    depositBtn.addEventListener("click", async () => {
+      if (!isRegistered) {
+        statusEl.textContent = "Сначала зарегистрируйся";
+        return;
+      }
       const amountStr = prompt("Сумма депозита (игровые монеты):");
       const amount = parseFloat(amountStr || "0");
       if (!amount || amount <= 0) return;
 
-      userBalance += amount;
-      balanceEl.textContent = userBalance.toFixed(2);
-      statusEl.textContent = "Баланс пополнен";
+      const res = await apiDeposit(amount);
+      if (res && res.balance != null) {
+        userBalance = res.balance;
+        balanceEl.textContent = userBalance.toFixed(2);
+        statusEl.textContent = "Депозит зачислен";
+      }
     });
 
-    // --- СТАРТ РАУНДА без регистрации и сервера ---
-    function startRound() {
+    async function startRound() {
       if (!allLoaded) return;
       baseBet = Math.max(parseFloat(betInput.value) || 0, 0.1);
       betInput.value = baseBet.toFixed(2);
 
+      if (!isRegistered) {
+        statusEl.textContent = "Нужно зарегистрироваться";
+        return;
+      }
       if (userBalance < baseBet) {
         statusEl.textContent = "Недостаточно средств, пополни баланс";
         return;
       }
 
-      userBalance -= baseBet;
-      balanceEl.textContent = userBalance.toFixed(2);
+      statusEl.textContent = "Ставка отправляется...";
+      startBtn.disabled = true;
+
+      const betResp = await apiBet(baseBet);
+      if (!betResp) {
+        startBtn.disabled = false;
+        return;
+      }
+      if (betResp.balance != null) {
+        userBalance = betResp.balance;
+        balanceEl.textContent = userBalance.toFixed(2);
+      }
 
       resetRound();
       state = "flying";
       statusEl.textContent = "Робинзон в полёте...";
-      startBtn.disabled = true;
     }
 
     startBtn.addEventListener("click", () => {
@@ -341,16 +460,15 @@
       }
     });
 
-    // Завершение раунда — считаем выигрыш локально
-    function finishRound(win) {
-      if (win) {
-        const payout = baseBet * multiplier;
-        userBalance += payout;
+    async function finishRound(win) {
+      const res = await apiResult(win, multiplier, baseBet);
+      if (res && res.balance != null) {
+        userBalance = res.balance;
         balanceEl.textContent = userBalance.toFixed(2);
       }
     }
 
-    // --- SPAWN HELPERS ---
+    // SPAWN HELPERS
     function getLastOfType(type) {
       for (let i = objects.length - 1; i >= 0; i--) {
         if (objects[i].type === type) return objects[i];
@@ -427,11 +545,11 @@
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
 
-      const size = 80;
+      const size = 128; // бонусы 128x128
       const y = h * (0.4 + Math.random() * 0.4);
       const x = w + size * 0.6;
       const last = getLastOfType("bonus");
-      const minGap = 150;
+      const minGap = 220;
 
       if (last && last.x - x < minGap) return;
 
@@ -445,7 +563,6 @@
       });
     }
 
-    // --- COLLISION ---
     function isColliding(a, b) {
       return !(
         a.x + a.w < b.x ||
@@ -455,7 +572,6 @@
       );
     }
 
-    // --- UPDATE ---
     function update(dt) {
       if (state !== "flying") return;
 
@@ -545,7 +661,6 @@
       objects = objects.filter(o => o.x + o.w > -50 && !o._dead);
     }
 
-    // --- DRAW ---
     function drawBackground() {
       const bg = assets.bg;
       const w = canvas.width / window.devicePixelRatio;
@@ -635,7 +750,6 @@
       }
     }
 
-    // --- GAME LOOP ---
     function render() {
       const now = performance.now();
       const dt = (now - lastTs) / 1000;
