@@ -36,7 +36,7 @@
       gap: 10px;
       pointer-events: auto;
     }
-    /* Логотип, уменьшенный чтобы влезать */
+    /* Логотип */
     #logo {
       width: 220px;
       height: 55px;
@@ -73,13 +73,14 @@
       flex-shrink: 0;
     }
 
-    /* Кнопка меню – чуть меньше, но все ещё крупная */
+    /* Кнопка меню */
     #menu-btn {
       width: 60px;
       height: 60px;
       padding: 0;
       border-radius: 50%;
-      background: url('assets/btn_menu.png') center/contain no-repeat;
+      background: url('assets/btn_menu.png') center no-repeat;
+      background-size: 100% 100%;
       box-shadow: 0 2px 6px rgba(0,0,0,.4);
       font-size: 0;
     }
@@ -106,7 +107,7 @@
       display: block;
     }
 
-    /* Заставка */
+    /* Заставка — без кнопки, авто-затухание */
     #splash {
       position: fixed;
       inset: 0;
@@ -115,7 +116,7 @@
       align-items: center;
       justify-content: center;
       z-index: 999;
-      transition: opacity 0.4s ease;
+      transition: opacity 0.6s ease;
     }
     #splash.hidden {
       opacity: 0;
@@ -149,30 +150,15 @@
       font-size: 12px;
       opacity: 0.7;
     }
-    
-    /* Кнопка начать игру – чуть больше и без лишней рамки */
-#splash-start-btn {
-  margin: 8px auto 0;
-  padding: 0;
-  width: 380px;   /* было 360 */
-  height: 120px;  /* было 110 */
-  max-width: 100%;
-  background: url('assets/btn_splash_start.png') center no-repeat;
-  background-size: 100% 100%; /* картинка заполняет всю кнопку */
-  border-radius: 0;
-  box-shadow: none;
-  font-size: 0;
-}
 
-
-    /* Нижнее табло – чуть ниже и выше, чтобы play помещалась */
+    /* Нижнее табло — прозрачнее */
     #bottom-ui {
       position: absolute;
       left: 0;
       right: 0;
       bottom: 0;
       min-height: 120px;
-      background: rgba(0, 0, 0, 0.85);
+      background: rgba(0, 0, 0, 0.6); /* было 0.85 */
       display: flex;
       align-items: center;
       justify-content: space-around;
@@ -206,47 +192,22 @@
       cursor: pointer;
     }
 
-    /* Кнопка Play – чуть крупнее и картинка по всей площади */
-#start-round-btn {
-  width: 128px;   /* было 112 */
-  height: 128px;  /* было 112 */
-  padding: 0;
-  border-radius: 50%;
-  background: url('assets/btn_play.png') center no-repeat;
-  background-size: 100% 100%; /* растягиваем картинку на всю кнопку */
-  box-shadow: 0 4px 14px rgba(0,0,0,0.65);
-  font-size: 0;
-}
-#start-round-btn:disabled {
-  opacity: 0.4;
-  box-shadow: none;
-  filter: grayscale(1);
-}
-
-
-/* Кнопка "Играть снова" – побольше и без прозрачной рамки */
-#retry-btn {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, 120%);
-  padding: 0;
-  width: 380px;   /* было 360 */
-  height: 130px;  /* было 120 */
-  max-width: 90%;
-  border-radius: 0;
-  font-size: 0;
-  background: url('assets/btn_retry.png') center no-repeat;
-  background-size: 100% 100%; /* картинка ровно по кнопке */
-  border: none;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.7);
-  z-index: 2100;
-  display: none;
-}
-#retry-btn:active {
-  transform: translate(-50%, 120%) scale(0.97);
-}
-
+    /* Кнопка Play внизу */
+    #start-round-btn {
+      width: 128px;
+      height: 128px;
+      padding: 0;
+      border-radius: 50%;
+      background: url('assets/btn_play.png') center no-repeat;
+      background-size: 100% 100%;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.65);
+      font-size: 0;
+    }
+    #start-round-btn:disabled {
+      opacity: 0.4;
+      box-shadow: none;
+      filter: grayscale(1);
+    }
 
     /* Меню справа сверху */
     #menu-panel {
@@ -268,17 +229,17 @@
       display: flex;
     }
     .menu-item {
-  width: 180px;
-  height: 48px;
-  padding: 0;
-  border-radius: 999px;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: 100% 100%; /* вместо contain */
-  box-shadow: none;
-  font-size: 0;
-  background-color: transparent;
-}
+      width: 180px;
+      height: 48px;
+      padding: 0;
+      border-radius: 999px;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-size: 100% 100%;
+      box-shadow: none;
+      font-size: 0;
+      background-color: transparent;
+    }
     #menu-deposit {
       background-image: url('assets/btn_deposit.png');
     }
@@ -288,14 +249,13 @@
   </style>
 </head>
 <body>
-  <!-- Заставка -->
+  <!-- Заставка (4 секунды, потом исчезает) -->
   <div id="splash">
     <div id="splash-inner">
       <div id="splash-logo"><span>🏝️</span>РОБИНЗОН</div>
       <div id="splash-subtitle">
         Лети к острову, собирай бонусы и умножай выигрыш.
       </div>
-      <button id="splash-start-btn">Начать игру</button>
       <div id="splash-hint">
         Совет: выбери ставку (внизу справа), а затем жми ▶.
       </div>
@@ -344,8 +304,6 @@
     </div>
   </div>
 
-  <button id="retry-btn">Играть снова</button>
-
   <div id="canvas-container">
     <canvas id="game"></canvas>
   </div>
@@ -366,13 +324,11 @@
     const balanceEl = document.getElementById("balance");
     const balanceBottomEl = document.getElementById("balance-bottom");
     const betBottomEl = document.getElementById("bet-bottom");
-    const retryBtn = document.getElementById("retry-btn");
 
     const autoToggleEl = document.getElementById("auto-toggle");
     const autoStatusEl = document.getElementById("auto-status");
 
     const splash = document.getElementById("splash");
-    const splashStartBtn = document.getElementById("splash-start-btn");
 
     const menuBtn = document.getElementById("menu-btn");
     const menuPanel = document.getElementById("menu-panel");
@@ -383,6 +339,13 @@
     const winSound = document.getElementById("win-sound");
     const bonusSound = document.getElementById("bonus-sound");
     const birdSound = document.getElementById("bird-sound");
+
+    // Авто-скрытие заставки через 4 секунды
+    setTimeout(() => {
+      if (splash && !splash.classList.contains("hidden")) {
+        splash.classList.add("hidden");
+      }
+    }, 4000);
 
     function resizeCanvas() {
       const rect = canvas.getBoundingClientRect();
@@ -466,6 +429,9 @@
     let bonusParticles = [];
     let shakeTime = 0;
 
+    // Смещение мира вверх на ~10% высоты экрана
+    const VIEW_OFFSET_REL = 0.10;
+
     // RTP
     let totalBet = 0;
     let totalPayout = 0;
@@ -525,8 +491,6 @@
       autoRestartTimer = 0;
       shakeTime = 0;
       multiplierEl.textContent = "1.00x";
-
-      retryBtn.style.display = "none";
 
       const baseX = w * 0.55;
       const spacing = 150;
@@ -644,14 +608,6 @@
       }
     });
 
-    retryBtn.addEventListener("click", () => {
-      startRound();
-    });
-
-    splashStartBtn.addEventListener("click", () => {
-      splash.classList.add("hidden");
-    });
-
     function finishRound(result) {
       let winAmount = 0;
       if (result === "won") {
@@ -668,6 +624,7 @@
       });
       if (roundHistory.length > 12) roundHistory.pop();
       updateHistoryUI();
+      startBtn.disabled = false;
     }
 
     function getLastOfType(type) {
@@ -832,6 +789,7 @@
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
       const waterY = h * WATER_LINE_REL;
+      const viewOffsetY = -h * VIEW_OFFSET_REL;
 
       for (const p of splashParticles) {
         p.x += p.vx * dt;
@@ -896,7 +854,6 @@
         }
         heroVisible = false;
         finishRound("lost");
-        retryBtn.style.display = "block";
         gameOverAnimTime = 0;
 
         if (splashSound) {
@@ -946,8 +903,6 @@
         if (o.type === "island") {
           state = "won";
           statusEl.textContent = "Победа! Робинзон приземлился на остров";
-          startBtn.disabled = false;
-          retryBtn.style.display = "block";
           winAnimTime = 0;
           finishRound("won");
 
@@ -1002,12 +957,13 @@
       const bg = assets.bg;
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
+      const viewOffsetY = -h * VIEW_OFFSET_REL;
 
       if (bg) {
         const scale = h / bg.height;
         const imgW = bg.width * scale;
         for (let x = 0; x < w + imgW; x += imgW) {
-          ctx.drawImage(bg, x, cameraY * 0.15, imgW, h);
+          ctx.drawImage(bg, x, cameraY * 0.15 + viewOffsetY * 0.3, imgW, h);
         }
       } else {
         ctx.fillStyle = "#4cc3ff";
@@ -1019,7 +975,8 @@
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
       const worldWaterY = h * WATER_LINE_REL;
-      const baseY = worldWaterY + cameraY;
+      const viewOffsetY = -h * VIEW_OFFSET_REL;
+      const baseY = worldWaterY + cameraY + viewOffsetY;
 
       const waveAmp = 6;
       const waveLen = 80;
@@ -1046,6 +1003,8 @@
     }
 
     function drawSplash() {
+      const h = canvas.height / window.devicePixelRatio;
+      const viewOffsetY = -h * VIEW_OFFSET_REL;
       if (!splashParticles.length) return;
       ctx.save();
       for (const p of splashParticles) {
@@ -1054,13 +1013,15 @@
         ctx.globalAlpha = alpha;
         ctx.fillStyle = "rgba(230, 245, 255, 1)";
         ctx.beginPath();
-        ctx.arc(p.x, p.y + cameraY, p.r, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y + cameraY + viewOffsetY, p.r, 0, Math.PI * 2);
         ctx.fill();
       }
       ctx.restore();
     }
 
     function drawBonusParticles() {
+      const h = canvas.height / window.devicePixelRatio;
+      const viewOffsetY = -h * VIEW_OFFSET_REL;
       if (!bonusParticles.length) return;
       ctx.save();
       for (const p of bonusParticles) {
@@ -1069,7 +1030,7 @@
         ctx.globalAlpha = alpha;
         ctx.fillStyle = "rgba(255, 220, 120, 1)";
         ctx.beginPath();
-        ctx.arc(p.x, p.y + cameraY, 2.2, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y + cameraY + viewOffsetY, 2.2, 0, Math.PI * 2);
         ctx.fill();
       }
       ctx.restore();
@@ -1080,13 +1041,16 @@
       const img = assets.rob;
       if (!img) return;
 
+      const h = canvas.height / window.devicePixelRatio;
+      const viewOffsetY = -h * VIEW_OFFSET_REL;
+
       const pulse = bonusPulse > 0 ? (bonusPulse / 0.25) : 0;
       const tilt = Math.sin(robinsonAnimTime * 6) * 0.18;
       const bobY = Math.sin(robinsonAnimTime * 3) * 4;
       const scale = 1 + 0.25 * pulse;
 
       ctx.save();
-      ctx.translate(robinson.x, robinson.y + bobY + cameraY);
+      ctx.translate(robinson.x, robinson.y + bobY + cameraY + viewOffsetY);
       ctx.rotate(tilt);
       ctx.scale(scale, scale);
 
@@ -1103,8 +1067,11 @@
 
     function drawWinAboveHero() {
       if (!heroVisible) return;
+      const h = canvas.height / window.devicePixelRatio;
+      const viewOffsetY = -h * VIEW_OFFSET_REL;
+
       const px = robinson.x;
-      const py = robinson.y + cameraY - robinson.height * 0.6;
+      const py = robinson.y + cameraY + viewOffsetY - robinson.height * 0.6;
 
       const winNow = baseBet * multiplier;
       const text = winNow.toFixed(2) + " RUB";
@@ -1126,6 +1093,9 @@
     }
 
     function drawObjects() {
+      const h = canvas.height / window.devicePixelRatio;
+      const viewOffsetY = -h * VIEW_OFFSET_REL;
+
       for (const o of objects) {
         let drawY = o.y;
 
@@ -1139,7 +1109,7 @@
           ctx.drawImage(
             assets.island,
             o.x - o.w / 2,
-            o.y - o.h / 2 + cameraY,
+            o.y - o.h / 2 + cameraY + viewOffsetY,
             o.w,
             o.h
           );
@@ -1148,7 +1118,7 @@
           ctx.drawImage(
             assets[o.kind],
             o.x - o.w / 2,
-            drawY - o.h / 2 + cameraY,
+            drawY - o.h / 2 + cameraY + viewOffsetY,
             o.w,
             o.h
           );
@@ -1157,7 +1127,7 @@
           ctx.drawImage(
             assets.bird,
             o.x - o.w / 2,
-            drawY - o.h / 2 + cameraY,
+            drawY - o.h / 2 + cameraY + viewOffsetY,
             o.w,
             o.h
           );
