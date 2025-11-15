@@ -319,12 +319,12 @@
     const HERO_X_REL = 0.25;
     const OBJECT_SPEED = 380;
     const ISLAND_BASE_PROB = 0.012;
-    const BIRD_PROB   = 0.012;
-    const BONUS_PROB  = 0.1;
 
-    // Уровень островов / воды (в мировых координатах, как доля высоты)
-    const WATER_LINE_REL = 0.93;
+    // теперь бонусы / птицы в соотношении примерно 50/50
+    const BIRD_PROB   = 0.06;
+    const BONUS_PROB  = 0.06;
 
+    const WATER_LINE_REL = 0.93; // линия островов / воды (в мировых координатах)
     const GRAVITY_BASE = 75;
     let gravity = GRAVITY_BASE;
 
@@ -368,7 +368,6 @@
       const baseX = w * 0.55;
       const spacing = 150;
       const startBonuses = ["x2", "x3", "x5", "x2", "x10", "x3"];
-
       const bonusSize = 38;
 
       startBonuses.forEach((kind, i) => {
@@ -463,7 +462,7 @@
 
       const width = 260;
       const height = 80;
-      const y = h * 0.93; // чуть ниже линии воды, сам остров
+      const y = h * 0.93;
 
       const x = w + width * 0.6;
       const last = getLastOfType("island");
@@ -485,7 +484,8 @@
       const h = canvas.height / window.devicePixelRatio;
 
       const size = 58;
-      const y = h * (0.35 + Math.random() * 0.35);
+      // выше, чем раньше: примерно 18–55% высоты
+      const y = h * (0.18 + Math.random() * 0.37);
       const x = w + size * 0.8;
       const last = getLastOfType("bird");
       const minGap = 180;
@@ -528,7 +528,8 @@
       const h = canvas.height / window.devicePixelRatio;
 
       const size = 38;
-      const y = h * (0.4 + Math.random() * 0.4);
+      // бонусы тоже выше: 22–60% высоты
+      const y = h * (0.22 + Math.random() * 0.38);
       const x = w + size * 0.6;
       const last = getLastOfType("bonus");
       const minGap = 220;
@@ -579,9 +580,9 @@
 
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
-      const waterY = h * WATER_LINE_REL; // мировая линия воды
+      const waterY = h * WATER_LINE_REL;
 
-      // обновляем частицы всплеска
+      // обновление частиц всплеска
       for (const p of splashParticles) {
         p.x += p.vx * dt;
         p.y += p.vy * dt;
@@ -601,7 +602,7 @@
       }
 
       if (state === "idle" || state === "won") {
-        cameraY = -(robinson.y - h * 0.55) * 0.7;
+        cameraY = -(robinson.y - h * 0.55) * 0.2; // камера отдалена (20%)
         cameraLockY = null;
         return;
       }
@@ -610,8 +611,7 @@
         if (cameraLockY === null) {
           cameraLockY = cameraY;
         }
-        // Робинзон уже "утонул", просто не двигаем камеру
-        cameraY = cameraLockY;
+        cameraY = cameraLockY; // камера заморожена
         return;
       }
 
@@ -625,7 +625,7 @@
         if (robinson.vy < 0) robinson.vy = 0;
       }
 
-      // касание "воды" (область ниже островов)
+      // падение в воду
       if (robinson.y + robinson.height / 2 >= waterY) {
         state = "lost";
         statusEl.textContent = "Робинзон упал в воду";
@@ -634,7 +634,7 @@
           createSplash(robinson.x, waterY);
           hasSplashed = true;
         }
-        heroVisible = false; // Робинзон пропадает
+        heroVisible = false;
         finishRound(false);
         return;
       }
@@ -698,7 +698,7 @@
 
       objects = objects.filter(o => o.x + o.w > -50 && !o._dead);
 
-      cameraY = -(robinson.y - h * 0.55) * 0.7;
+      cameraY = -(robinson.y - h * 0.55) * 0.2; // мягкая камера 20%
       cameraLockY = null;
     }
 
@@ -719,7 +719,7 @@
       }
     }
 
-    // Всё, что ниже линии островов — "море"
+    // всё ниже линии островов — море
     function drawWaterRegion() {
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
@@ -825,18 +825,21 @@
       }
     }
 
-    function drawMultiplierAboveHero() {
+    function drawWinAboveHero() {
       if (!heroVisible) return;
       const px = robinson.x;
       const py = robinson.y + cameraY - robinson.height * 0.6;
 
+      // потенциальный выигрыш в рублях
+      const winNow = baseBet * multiplier;
+      const text = winNow.toFixed(2) + " RUB";
+
       ctx.save();
-      ctx.font = "bold 22px system-ui";
+      ctx.font = "bold 20px system-ui";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.strokeStyle = "rgba(0,0,0,0.7)";
       ctx.lineWidth = 4;
-      const text = multiplier.toFixed(2) + "x";
       ctx.strokeText(text, px, py);
       ctx.fillStyle = "#ffffff";
       ctx.fillText(text, px, py);
@@ -898,7 +901,7 @@
       drawWaterRegion();
       drawObjects();
       drawHero();
-      drawMultiplierAboveHero();
+      drawWinAboveHero();
       drawSplash();
 
       requestAnimationFrame(render);
