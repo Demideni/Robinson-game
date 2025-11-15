@@ -277,6 +277,8 @@
   <audio id="splash-sound" src="assets/splash.mp3" preload="auto"></audio>
   <audio id="win-sound" src="assets/win.mp3" preload="auto"></audio>
   <audio id="lose-sound" src="assets/lose.mp3" preload="auto"></audio>
+  <audio id="bonus-sound" src="assets/bonus_hit.mp3" preload="auto"></audio>
+  <audio id="bird-sound" src="assets/bird_hit.mp3" preload="auto"></audio>
 
   <script>
     const canvas = document.getElementById("game");
@@ -300,6 +302,8 @@
     const splashSound = document.getElementById("splash-sound");
     const winSound = document.getElementById("win-sound");
     const loseSound = document.getElementById("lose-sound");
+    const bonusSound = document.getElementById("bonus-sound");
+    const birdSound = document.getElementById("bird-sound");
 
     function resizeCanvas() {
       const rect = canvas.getBoundingClientRect();
@@ -364,7 +368,8 @@
     const BIRD_PROB   = 0.06;
     const BONUS_PROB  = 0.06;
 
-    const WATER_LINE_REL = 0.93;
+    // Воду и остров поднял выше, чтобы не перекрывало меню
+    const WATER_LINE_REL = 0.8;
     const GRAVITY_BASE = 75;
     let gravity = GRAVITY_BASE;
 
@@ -382,7 +387,7 @@
 
     let bonusParticles = [];
 
-    // RTP и история (история считается, но не показывается на экране)
+    // RTP и история (история считается, но не показывается)
     let totalBet = 0;
     let totalPayout = 0;
     const TARGET_RTP = 0.96;
@@ -408,7 +413,7 @@
     }
 
     function updateHistoryUI() {
-      // Панели истории нет — функция оставлена только для логики
+      // Без отображения истории
       return;
     }
 
@@ -525,6 +530,8 @@
       unlockSound(splashSound);
       unlockSound(winSound);
       unlockSound(loseSound);
+      unlockSound(bonusSound);
+      unlockSound(birdSound);
     }
 
     startBtn.addEventListener("click", () => {
@@ -572,7 +579,7 @@
 
       const width = 260;
       const height = 80;
-      const y = h * 0.93;
+      const y = h * WATER_LINE_REL; // остров на уровне воды
 
       const x = w + width * 0.6;
       const last = getLastOfType("island");
@@ -859,7 +866,11 @@
           robinson.vy += 50;
           o._dead = true;
 
-          // звука птицы здесь больше нет — остаётся твоя реализация
+          // звук птицы
+          if (birdSound) {
+            birdSound.currentTime = 0;
+            birdSound.play().catch(() => {});
+          }
         }
 
         if (o.type === "bonus") {
@@ -873,7 +884,11 @@
           addBonusParticles(o.x, o.y);
           o._dead = true;
 
-          // звука бонуса здесь больше нет — остаётся твоя реализация
+          // звук бонуса
+          if (bonusSound) {
+            bonusSound.currentTime = 0;
+            bonusSound.play().catch(() => {});
+          }
         }
       }
 
