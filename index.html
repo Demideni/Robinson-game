@@ -138,19 +138,24 @@
 
     /* Нижнее табло как в Aviamasters */
     #bottom-ui {
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: env(safe-area-inset-bottom, 0);
-      height: 96px;
-      background: rgba(0, 0, 0, 0.45);
-      backdrop-filter: blur(12px);
-      display: flex;
-      align-items: center;
-      justify-content: space-around;
-      padding: 0 16px;
-      z-index: 2000;           /* выше всего остального */
-      pointer-events: auto;    /* точно кликабельно */
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0; /* всегда прямо к низу экрана */
+  min-height: 80px;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+
+  /* добавляем отступ с учётом "подбородка" айфона */
+  padding: 8px 16px calc(8px + env(safe-area-inset-bottom, 0px));
+
+  z-index: 2000;
+  pointer-events: auto;
+}
+    /* точно кликабельно */
     }
     .bottom-item {
       font-size: 16px;
