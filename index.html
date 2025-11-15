@@ -276,7 +276,7 @@
   <!-- Звуки -->
   <audio id="splash-sound" src="assets/splash.mp3" preload="auto"></audio>
   <audio id="win-sound" src="assets/win.mp3" preload="auto"></audio>
-  <audio id="lose-sound" src="assets/lose.mp3" preload="auto"></audio>
+  <!-- без lose-sound -->
   <audio id="bonus-sound" src="assets/bonus_hit.mp3" preload="auto"></audio>
   <audio id="bird-sound" src="assets/bird_hit.mp3" preload="auto"></audio>
 
@@ -301,7 +301,6 @@
 
     const splashSound = document.getElementById("splash-sound");
     const winSound = document.getElementById("win-sound");
-    const loseSound = document.getElementById("lose-sound");
     const bonusSound = document.getElementById("bonus-sound");
     const birdSound = document.getElementById("bird-sound");
 
@@ -529,7 +528,6 @@
       };
       unlockSound(splashSound);
       unlockSound(winSound);
-      unlockSound(loseSound);
       unlockSound(bonusSound);
       unlockSound(birdSound);
     }
@@ -780,7 +778,7 @@
         if (robinson.vy < 0) robinson.vy = 0;
       }
 
-      // падение в воду = проигрыш
+      // падение в воду = проигрыш (без звука проигрыша)
       if (robinson.y + robinson.height / 2 >= waterY) {
         state = "lost";
         statusEl.textContent = "Робинзон упал в воду";
@@ -797,10 +795,6 @@
         if (splashSound) {
           splashSound.currentTime = 0;
           splashSound.play().catch(() => {});
-        }
-        if (loseSound) {
-          loseSound.currentTime = 0;
-          loseSound.play().catch(() => {});
         }
         vibrate(200);
         return;
@@ -866,7 +860,6 @@
           robinson.vy += 50;
           o._dead = true;
 
-          // звук птицы
           if (birdSound) {
             birdSound.currentTime = 0;
             birdSound.play().catch(() => {});
@@ -884,7 +877,6 @@
           addBonusParticles(o.x, o.y);
           o._dead = true;
 
-          // звук бонуса
           if (bonusSound) {
             bonusSound.currentTime = 0;
             bonusSound.play().catch(() => {});
