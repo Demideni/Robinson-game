@@ -194,6 +194,27 @@
       opacity: 0.4;
       box-shadow: none;
     }
+
+    /* Кнопка "Играть снова" поверх оверлея */
+    #retry-btn {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, 120%);
+      padding: 10px 24px;
+      border-radius: 999px;
+      font-size: 16px;
+      font-weight: 700;
+      background: #ffffff;
+      color: #000;
+      border: none;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.7);
+      z-index: 2100;
+      display: none;
+    }
+    #retry-btn:active {
+      transform: translate(-50%, 120%) scale(0.97);
+    }
   </style>
 </head>
 <body>
@@ -243,9 +264,15 @@
     </div>
   </div>
 
+  <!-- Кнопка "Играть снова" поверх оверлея -->
+  <button id="retry-btn">Играть снова</button>
+
   <div id="canvas-container">
     <canvas id="game"></canvas>
   </div>
+
+  <!-- Звук всплеска воды -->
+  <audio id="splash-sound" src="assets/splash.mp3" preload="auto"></audio>
 
   <script>
     const canvas = document.getElementById("game");
@@ -258,9 +285,12 @@
     const balanceBottomEl = document.getElementById("balance-bottom");
     const betBottomEl = document.getElementById("bet-bottom");
     const depositBtn = document.getElementById("deposit-btn");
+    const retryBtn = document.getElementById("retry-btn");
 
     const splash = document.getElementById("splash");
     const splashStartBtn = document.getElementById("splash-start-btn");
+
+    const splashSound = document.getElementById("splash-sound");
 
     function resizeCanvas() {
       const rect = canvas.getBoundingClientRect();
@@ -293,7 +323,7 @@
       x20: "assets/bonus_x20.png",
       x50: "assets/bonus_x50.png",
       x100: "assets/bonus_x100.png",
-      gameover: "assets/game_over.png"   // ТВОЯ PNG "Робинзон упал в воду"
+      gameover: "assets/game_over.png"
     };
 
     let allLoaded = false;
@@ -324,7 +354,7 @@
     const BIRD_PROB   = 0.06;
     const BONUS_PROB  = 0.06;
 
-    const WATER_LINE_REL = 0.93; // линия островов / воды (в мировых координатах)
+    const WATER_LINE_REL = 0.93;
     const GRAVITY_BASE = 75;
     let gravity = GRAVITY_BASE;
 
@@ -337,6 +367,12 @@
     let splashParticles = [];
     let hasSplashed = false;
     let heroVisible = true;
+
+    // анимация гейм-овера
+    let gameOverAnimTime = 0;
+
+    // частицы для бонусов
+    let bonusParticles = [];
 
     function resetRound() {
       const w = canvas.width / window.devicePixelRatio;
@@ -363,7 +399,10 @@
       shoutVisible = 0;
       cameraY = 0;
       cameraLockY = null;
+      gameOverAnimTime = 0;
       multiplierEl.textContent = "1.00x";
+
+      retryBtn.style.display = "none";
 
       const baseX = w * 0.55;
       const spacing = 150;
@@ -428,12 +467,24 @@
       state = "flying";
       statusEl.textContent = "Робинзон в полёте...";
       startBtn.disabled = true;
+
+      // разблокируем звук (iOS требовательный)
+      if (splashSound) {
+        splashSound.play().then(() => {
+          splashSound.pause();
+          splashSound.currentTime = 0;
+        }).catch(() => {});
+      }
     }
 
     startBtn.addEventListener("click", () => {
       if (state === "idle" || state === "won" || state === "lost") {
         startRound();
       }
+    });
+
+    retryBtn.addEventListener("click", () => {
+      startRound();
     });
 
     splashStartBtn.addEventListener("click", () => {
@@ -484,7 +535,7 @@
       const h = canvas.height / window.devicePixelRatio;
 
       const size = 58;
-      const y = h * (0.18 + Math.random() * 0.37); // выше
+      const y = h * (0.18 + Math.random() * 0.37);
       const x = w + size * 0.8;
       const last = getLastOfType("bird");
       const minGap = 180;
@@ -527,7 +578,7 @@
       const h = canvas.height / window.devicePixelRatio;
 
       const size = 38;
-      const y = h * (0.22 + Math.random() * 0.38); // тоже выше
+      const y = h * (0.22 + Math.random() * 0.38);
       const x = w + size * 0.6;
       const last = getLastOfType("bonus");
       const minGap = 220;
@@ -557,7 +608,7 @@
     function createSplash(x, waterY) {
       const count = 22;
       for (let i = 0; i < count; i++) {
-        const angle = Math.random() * Math.PI - Math.PI / 2; // вверх
+        const angle = Math.random() * Math.PI - Math.PI / 2;
         const speed = 180 + Math.random() * 140;
         splashParticles.push({
           x,
@@ -571,6 +622,28 @@
       }
     }
 
+    function addBonusParticles(x, y) {
+      const count = 18;
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 60 + Math.random() * 70;
+        bonusParticles.push({
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: 0,
+          maxLife: 0.5 + Math.random() * 0.2,
+        });
+      }
+    }
+
+    function vibrate(pattern) {
+      if (navigator.vibrate) {
+        navigator.vibrate(pattern);
+      }
+    }
+
     function update(dt) {
       time += dt;
       bonusPulse = Math.max(0, bonusPulse - dt);
@@ -580,7 +653,7 @@
       const h = canvas.height / window.devicePixelRatio;
       const waterY = h * WATER_LINE_REL;
 
-      // обновление частиц всплеска
+      // частицы всплеска
       for (const p of splashParticles) {
         p.x += p.vx * dt;
         p.y += p.vy * dt;
@@ -588,6 +661,16 @@
         p.life += dt;
       }
       splashParticles = splashParticles.filter(p => p.life < p.maxLife);
+
+      // частицы бонусов
+      for (const p of bonusParticles) {
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.vx *= 0.98;
+        p.vy *= 0.98;
+        p.life += dt;
+      }
+      bonusParticles = bonusParticles.filter(p => p.life < p.maxLife);
 
       if (state === "flying") {
         if (shoutVisible > 0) {
@@ -600,7 +683,7 @@
       }
 
       if (state === "idle" || state === "won") {
-        cameraY = -(robinson.y - h * 0.55) * 0.1; // 10%
+        cameraY = -(robinson.y - h * 0.55) * 0.1;
         cameraLockY = null;
         return;
       }
@@ -609,7 +692,8 @@
         if (cameraLockY === null) {
           cameraLockY = cameraY;
         }
-        cameraY = cameraLockY; // камера заморожена
+        cameraY = cameraLockY;
+        gameOverAnimTime += dt;
         return;
       }
 
@@ -634,6 +718,16 @@
         }
         heroVisible = false;
         finishRound(false);
+        retryBtn.style.display = "block";
+        gameOverAnimTime = 0;
+
+        // звук + вибрация
+        if (splashSound) {
+          splashSound.currentTime = 0;
+          splashSound.play().catch(() => {});
+        }
+        vibrate(200);
+
         return;
       }
 
@@ -690,13 +784,14 @@
           robinson.vy = -230;
           gravity = Math.max(GRAVITY_BASE * 0.8, gravity - 20);
           bonusPulse = 0.25;
+          addBonusParticles(o.x, o.y);
           o._dead = true;
         }
       }
 
       objects = objects.filter(o => o.x + o.w > -50 && !o._dead);
 
-      cameraY = -(robinson.y - h * 0.55) * 0.1; // камера 10%
+      cameraY = -(robinson.y - h * 0.55) * 0.1;
       cameraLockY = null;
     }
 
@@ -770,6 +865,21 @@
         ctx.fillStyle = "rgba(230, 245, 255, 1)";
         ctx.beginPath();
         ctx.arc(p.x, p.y + cameraY, p.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function drawBonusParticles() {
+      if (!bonusParticles.length) return;
+      ctx.save();
+      for (const p of bonusParticles) {
+        const alpha = 1 - p.life / p.maxLife;
+        if (alpha <= 0) continue;
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = "rgba(255, 220, 120, 1)";
+        ctx.beginPath();
+        ctx.arc(p.x, p.y + cameraY, 2.2, 0, Math.PI * 2);
         ctx.fill();
       }
       ctx.restore();
@@ -909,31 +1019,39 @@
       }
     }
 
-    // PNG "Робинзон упал в воду" + затемнение фона
+    // PNG "Робинзон упал в воду" + затемнение фона с анимацией
     function drawGameOverOverlay() {
       if (state !== "lost") return;
 
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
 
+      const t = Math.min(gameOverAnimTime / 0.5, 1); // 0–1 за 0.5 сек
+      const ease = 1 - Math.pow(1 - t, 3);           // easing
+
       ctx.save();
 
-      // затемняем экран (канвас), нижнее меню — отдельный слой, не трогаем его
-      ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
+      // затемнение
+      ctx.globalAlpha = 0.65 * ease;
+      ctx.fillStyle = "rgba(0, 0, 0, 1)";
       ctx.fillRect(0, 0, w, h);
 
       const img = assets.gameover;
+      ctx.globalAlpha = ease;
+
       if (img) {
-        const maxW = w * 0.7;
-        const maxH = h * 0.4;
-        const scale = Math.min(maxW / img.width, maxH / img.height);
+        const maxW = w * 0.75;
+        const maxH = h * 0.5;
+        const baseScale = Math.min(maxW / img.width, maxH / img.height);
+        const scale = baseScale * (0.9 + 0.1 * ease); // лёгкий zoom-in
+
         const iw = img.width * scale;
         const ih = img.height * scale;
         const x = w / 2 - iw / 2;
         const y = h / 2 - ih / 2;
+
         ctx.drawImage(img, x, y, iw, ih);
       } else {
-        // запасной вариант, если PNG ещё не добавлена
         const text1 = "Робинзон упал в воду.";
         const text2 = "Добавь assets/game_over.png";
         ctx.font = "bold 20px system-ui";
@@ -967,6 +1085,7 @@
       drawObjects();
       drawHero();
       drawWinAboveHero();
+      drawBonusParticles();
       drawSplash();
       drawGameOverOverlay();
 
