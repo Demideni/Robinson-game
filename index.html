@@ -136,26 +136,23 @@
       width: 100%;
     }
 
-    /* Нижнее табло как в Aviamasters */
+    /* Нижнее табло */
     #bottom-ui {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0; /* всегда прямо к низу экрана */
-  min-height: 80px;
-  background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(12px);
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-
-  /* добавляем отступ с учётом "подбородка" айфона */
-  padding: 8px 16px calc(8px + env(safe-area-inset-bottom, 0px));
-
-  z-index: 2000;
-  pointer-events: auto;
-}
-    /* точно кликабельно */
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      min-height: 80px;
+      background: rgba(0, 0, 0, 0.75);
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      padding: 8px 16px calc(8px + env(safe-area-inset-bottom, 0px));
+      z-index: 2000;
+      pointer-events: auto;
+    }
+    #bottom-ui, #bottom-ui * {
+      color: #ffffff;
     }
     .bottom-item {
       font-size: 16px;
@@ -200,7 +197,7 @@
   </style>
 </head>
 <body>
-  <!-- Заставка для мобильных -->
+  <!-- Заставка -->
   <div id="splash">
     <div id="splash-inner">
       <div id="splash-logo"><span>🏝️</span>РОБИНЗОН</div>
@@ -324,7 +321,7 @@
     const ISLAND_BASE_PROB = 0.012;
     const BIRD_PROB   = 0.012;
     const BONUS_PROB  = 0.1;
-    const WATER_LINE_REL = 0.99;
+    const WATER_LINE_REL = 0.94;   // уровень воды, почти совпадает с островом
     const GRAVITY_BASE = 75;
     let gravity = GRAVITY_BASE;
 
@@ -332,7 +329,10 @@
     let robinsonAnimTime = 0;
     let shoutVisible = 0;
     let cameraY = 0;
-    let cameraLockY = null; // фиксация камеры при проигрыше
+    let cameraLockY = null;
+
+    let splashParticles = [];
+    let hasSplashed = false;
 
     function resetRound() {
       const w = canvas.width / window.devicePixelRatio;
@@ -348,6 +348,8 @@
 
       gravity = GRAVITY_BASE;
       objects = [];
+      splashParticles = [];
+      hasSplashed = false;
       time = 0;
       multiplier = 1;
       lastTs = performance.now();
@@ -548,6 +550,23 @@
       );
     }
 
+    function createSplash(x, waterY) {
+      const count = 22;
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI - Math.PI / 2; // вверх
+        const speed = 180 + Math.random() * 140;
+        splashParticles.push({
+          x,
+          y: waterY,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed * 0.8,
+          life: 0,
+          maxLife: 0.7 + Math.random() * 0.3,
+          r: 2 + Math.random() * 3,
+        });
+      }
+    }
+
     function update(dt) {
       time += dt;
       bonusPulse = Math.max(0, bonusPulse - dt);
@@ -557,8 +576,16 @@
       const h = canvas.height / window.devicePixelRatio;
       const waterY = h * WATER_LINE_REL;
 
+      // обновляем частицы всплеска
+      for (const p of splashParticles) {
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.vy += 350 * dt; // гравитация
+        p.life += dt;
+      }
+      splashParticles = splashParticles.filter(p => p.life < p.maxLife);
+
       if (state === "flying") {
-        // крик
         if (shoutVisible > 0) {
           shoutVisible -= dt;
         } else if (Math.random() < 0.8 * dt) {
@@ -575,7 +602,6 @@
       }
 
       if (state === "lost") {
-        // фиксируем камеру на момент проигрыша
         if (cameraLockY === null) {
           cameraLockY = cameraY;
         }
@@ -595,10 +621,15 @@
         if (robinson.vy < 0) robinson.vy = 0;
       }
 
+      // касание воды
       if (robinson.y + robinson.height / 2 >= waterY) {
         state = "lost";
         statusEl.textContent = "Робинзон упал в воду";
         startBtn.disabled = false;
+        if (!hasSplashed) {
+          createSplash(robinson.x, waterY);
+          hasSplashed = true;
+        }
         finishRound(false);
         return;
       }
@@ -683,6 +714,37 @@
       }
     }
 
+    function drawWater() {
+      const w = canvas.width / window.devicePixelRatio;
+      const h = canvas.height / window.devicePixelRatio;
+      const waterY = h * WATER_LINE_REL;
+      const screenY = waterY + cameraY;
+
+      const g = ctx.createLinearGradient(0, screenY, 0, h + cameraY);
+      g.addColorStop(0, "rgba(0, 110, 200, 0.95)");
+      g.addColorStop(1, "rgba(0, 40, 90, 1)");
+
+      ctx.save();
+      ctx.fillStyle = g;
+      ctx.fillRect(0, screenY, w, h - screenY - cameraY);
+      ctx.restore();
+    }
+
+    function drawSplash() {
+      if (!splashParticles.length) return;
+      ctx.save();
+      for (const p of splashParticles) {
+        const alpha = 1 - p.life / p.maxLife;
+        if (alpha <= 0) continue;
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = "rgba(230, 245, 255, 1)";
+        ctx.beginPath();
+        ctx.arc(p.x, p.y + cameraY, p.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
     function drawHero() {
       const img = assets.rob;
       if (!img) return;
@@ -758,7 +820,7 @@
 
     function drawMultiplierAboveHero() {
       const px = robinson.x;
-      const py = robinson.y + cameraY - robinson.height * 0.6; // ближе к голове
+      const py = robinson.y + cameraY - robinson.height * 0.6;
 
       ctx.save();
       ctx.font = "bold 22px system-ui";
@@ -825,9 +887,11 @@
       ctx.clearRect(0, 0, w, h);
 
       drawBackground();
+      drawWater();
       drawObjects();
       drawHero();
       drawMultiplierAboveHero();
+      drawSplash();
 
       requestAnimationFrame(render);
     }
