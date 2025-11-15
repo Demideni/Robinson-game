@@ -303,7 +303,7 @@
   <audio id="win-sound" src="assets/win.mp3" preload="auto"></audio>
   <audio id="bonus-sound" src="assets/bonus_hit.mp3" preload="auto"></audio>
   <audio id="bird-sound" src="assets/bird_hit.mp3" preload="auto"></audio>
-  <audio id="wind-sound" src="assets/wind.mp3" preload="auto" loop></audio>
+  <audio id="lose-sound" src="assets/lose.mp3" preload="auto"></audio>
 
   <script>
     const canvas = document.getElementById("game");
@@ -329,7 +329,7 @@
     const winSound = document.getElementById("win-sound");
     const bonusSound = document.getElementById("bonus-sound");
     const birdSound = document.getElementById("bird-sound");
-    const windSound = document.getElementById("wind-sound");
+    const loseSound = document.getElementById("lose-sound");
 
     function resizeCanvas() {
       const rect = canvas.getBoundingClientRect();
@@ -553,7 +553,7 @@
       statusEl.textContent = "Робинзон в полёте...";
       startBtn.disabled = true;
 
-      // разблокируем и "пробуждаем" звуки
+      // разблокируем и "пробуждаем" звуки (важно для iOS)
       const unlockSound = (audio) => {
         if (!audio) return;
         audio.play().then(() => {
@@ -565,13 +565,7 @@
       unlockSound(winSound);
       unlockSound(bonusSound);
       unlockSound(birdSound);
-      unlockSound(windSound);
-
-      // включаем ветер на время полета
-      if (windSound) {
-        windSound.currentTime = 0;
-        windSound.play().catch(() => {});
-      }
+      unlockSound(loseSound);
     }
 
     startBtn.addEventListener("click", () => {
@@ -759,13 +753,6 @@
       }
     }
 
-    function stopWind() {
-      if (windSound) {
-        windSound.pause();
-        windSound.currentTime = 0;
-      }
-    }
-
     function update(dt) {
       time += dt;
       bonusPulse = Math.max(0, bonusPulse - dt);
@@ -827,7 +814,7 @@
         if (robinson.vy < 0) robinson.vy = 0;
       }
 
-      // падение в воду
+      // падение в воду = проигрыш
       if (robinson.y + robinson.height / 2 >= waterY) {
         state = "lost";
         statusEl.textContent = "Робинзон упал в воду";
@@ -841,14 +828,17 @@
         retryBtn.style.display = "block";
         gameOverAnimTime = 0;
 
-        stopWind();
-
         if (splashSound) {
           splashSound.currentTime = 0;
           splashSound.play().catch(() => {});
         }
-        vibrate(200);
+        // 🎵 звук проигрыша
+        if (loseSound) {
+          loseSound.currentTime = 0;
+          loseSound.play().catch(() => {});
+        }
 
+        vibrate(200);
         return;
       }
 
@@ -895,8 +885,6 @@
           retryBtn.style.display = "block";
           winAnimTime = 0;
           finishRound("won");
-
-          stopWind();
 
           if (winSound) {
             winSound.currentTime = 0;
