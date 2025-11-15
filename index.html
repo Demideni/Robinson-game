@@ -93,7 +93,7 @@
       position: absolute;
       left: 0;
       right: 0;
-      top: 75%;
+      top: 75%;               /* центр нижней половины экрана */
       transform: translateY(-50%);
       padding: 6px 10px;
       display: flex;
@@ -253,7 +253,8 @@
       bg: "assets/bg_ocean.png",
       rob: "assets/robinson.png",
       island: "assets/island_long.png",
-      bird: "assets/bird_spritesheet.png",  // статичная птица
+      // одна картинка птицы, не спрайт-лист
+      bird: "assets/bird_spritesheet.png",
       x2: "assets/bonus_x2.png",
       x3: "assets/bonus_x3.png",
       x5: "assets/bonus_x5.png",
@@ -294,8 +295,6 @@
     let gravity = GRAVITY_BASE;
 
     let bonusPulse = 0;
-
-    // анимация Робинзона
     let robinsonAnimTime = 0;
     let shoutVisible = 0; // время, когда виден пузырь "А-А-А!"
 
@@ -307,7 +306,7 @@
         x: w * HERO_X_REL,
         y: h * 0.5,
         vy: -170,
-        width: 72,
+        width: 72,   // уменьшенный Робинзон
         height: 72,
       };
 
@@ -325,6 +324,9 @@
       const spacing = 150;
       const startBonuses = ["x2", "x3", "x5", "x2", "x10", "x3"];
 
+      // бонусы увеличены на 20%: 32 → 38
+      const bonusSize = 38;
+
       startBonuses.forEach((kind, i) => {
         const yOffset = (Math.random() * 0.12 - 0.06) * h;
         objects.push({
@@ -332,8 +334,8 @@
           kind,
           x: baseX + i * spacing,
           y: robinson.y + yOffset,
-          w: 32,
-          h: 32,
+          w: bonusSize,
+          h: bonusSize,
         });
       });
     }
@@ -378,6 +380,7 @@
       }
     });
 
+    // Заставка: убираем оверлей по нажатию
     splashStartBtn.addEventListener("click", () => {
       splash.classList.add("hidden");
     });
@@ -425,7 +428,7 @@
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
 
-      const size = 58; // птица меньше
+      const size = 58; // птица на 20% меньше прежних 72
       const y = h * (0.35 + Math.random() * 0.35);
       const x = w + size * 0.8;
       const last = getLastOfType("bird");
@@ -467,7 +470,7 @@
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
 
-      const size = 32;
+      const size = 38; // бонусы +20% (32 -> 38)
       const y = h * (0.4 + Math.random() * 0.4);
       const x = w + size * 0.6;
       const last = getLastOfType("bonus");
@@ -509,6 +512,8 @@
       } else if (Math.random() < 0.8 * dt) { // вероятность крика
         shoutVisible = 0.35; // длительность пузыря
       }
+
+      // множитель НЕ растёт по времени — только от бонусов и птицы
 
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
@@ -625,7 +630,7 @@
       ctx.rotate(tilt);
       ctx.scale(scale, scale);
 
-      // тело
+      // тело Робинзона без ног
       ctx.drawImage(
         img,
         -robinson.width / 2,
@@ -633,27 +638,6 @@
         robinson.width,
         robinson.height
       );
-
-      // болтающиеся ноги (простые прямоугольники)
-      const legOffsetY = robinson.height / 2 - 6;
-      const legLen = 14;
-      const legPhase = Math.sin(robinsonAnimTime * 20); // частые взмахи
-
-      ctx.lineWidth = 3;
-      ctx.lineCap = "round";
-      ctx.strokeStyle = "rgba(60,20,0,0.9)";
-
-      // левая нога
-      ctx.beginPath();
-      ctx.moveTo(-6, legOffsetY);
-      ctx.lineTo(-6 + legPhase * 3, legOffsetY + legLen);
-      ctx.stroke();
-
-      // правая нога
-      ctx.beginPath();
-      ctx.moveTo(6, legOffsetY);
-      ctx.lineTo(6 - legPhase * 3, legOffsetY + legLen);
-      ctx.stroke();
 
       ctx.restore();
 
@@ -729,6 +713,7 @@
           );
         }
         if (o.type === "bird" && assets.bird) {
+          // статичная птица
           ctx.drawImage(
             assets.bird,
             o.x - o.w / 2,
