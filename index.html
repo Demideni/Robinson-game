@@ -276,7 +276,6 @@
   <!-- Звуки -->
   <audio id="splash-sound" src="assets/splash.mp3" preload="auto"></audio>
   <audio id="win-sound" src="assets/win.mp3" preload="auto"></audio>
-  <!-- без lose-sound -->
   <audio id="bonus-sound" src="assets/bonus_hit.mp3" preload="auto"></audio>
   <audio id="bird-sound" src="assets/bird_hit.mp3" preload="auto"></audio>
 
@@ -367,7 +366,7 @@
     const BIRD_PROB   = 0.06;
     const BONUS_PROB  = 0.06;
 
-    // Воду и остров поднял выше, чтобы не перекрывало меню
+    // Вода/остров выше, чтобы не перекрывало меню
     const WATER_LINE_REL = 0.8;
     const GRAVITY_BASE = 75;
     let gravity = GRAVITY_BASE;
@@ -386,7 +385,10 @@
 
     let bonusParticles = [];
 
-    // RTP и история (история считается, но не показывается)
+    // тряска экрана при ударе о птицу
+    let shakeTime = 0; // сек
+
+    // RTP и история (под капотом)
     let totalBet = 0;
     let totalPayout = 0;
     const TARGET_RTP = 0.96;
@@ -412,7 +414,7 @@
     }
 
     function updateHistoryUI() {
-      // Без отображения истории
+      // история не показывается
       return;
     }
 
@@ -443,6 +445,7 @@
       gameOverAnimTime = 0;
       winAnimTime = 0;
       autoRestartTimer = 0;
+      shakeTime = 0;
       multiplierEl.textContent = "1.00x";
 
       retryBtn.style.display = "none";
@@ -518,7 +521,6 @@
       statusEl.textContent = "Робинзон в полёте...";
       startBtn.disabled = true;
 
-      // разблокируем звуки (важно для iOS)
       const unlockSound = (audio) => {
         if (!audio) return;
         audio.play().then(() => {
@@ -577,7 +579,7 @@
 
       const width = 260;
       const height = 80;
-      const y = h * WATER_LINE_REL; // остров на уровне воды
+      const y = h * WATER_LINE_REL;
 
       const x = w + width * 0.6;
       const last = getLastOfType("island");
@@ -721,6 +723,7 @@
       time += dt;
       bonusPulse = Math.max(0, bonusPulse - dt);
       robinsonAnimTime += dt;
+      if (shakeTime > 0) shakeTime = Math.max(0, shakeTime - dt);
 
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
@@ -864,6 +867,8 @@
             birdSound.currentTime = 0;
             birdSound.play().catch(() => {});
           }
+          // тряска при ударе об птицу
+          shakeTime = 0.25;
         }
 
         if (o.type === "bonus") {
@@ -918,13 +923,14 @@
 
       ctx.save();
       ctx.beginPath();
-      ctx.moveTo(0, baseY + Math.sin(time * 2) * 2);
-      for (let x = 0; x <= w; x += 20) {
+      // рисуем с запасом за экран влево/вправо, чтобы не было пустоты
+      ctx.moveTo(-40, baseY + Math.sin(time * 2) * 2);
+      for (let x = -40; x <= w + 40; x += 20) {
         const y = baseY + Math.sin((x / waveLen) + time * 2) * waveAmp;
         ctx.lineTo(x, y);
       }
-      ctx.lineTo(w, h);
-      ctx.lineTo(0, h);
+      ctx.lineTo(w + 40, h);
+      ctx.lineTo(-40, h);
       ctx.closePath();
 
       const g = ctx.createLinearGradient(0, baseY, 0, h);
@@ -935,17 +941,7 @@
       ctx.fillStyle = g;
       ctx.fill();
 
-      ctx.globalAlpha = 0.4;
-      ctx.lineWidth = 1.5;
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
-      ctx.beginPath();
-      for (let x = 0; x <= w; x += 16) {
-        const y = baseY + Math.sin((x / waveLen) + time * 2.5) * (waveAmp * 0.6);
-        ctx.moveTo(x - 4, y);
-        ctx.lineTo(x + 4, y);
-      }
-      ctx.stroke();
-
+      // пунктир по поверхности воды убран
       ctx.restore();
     }
 
@@ -1206,6 +1202,15 @@
       const h = canvas.height / window.devicePixelRatio;
       ctx.clearRect(0, 0, w, h);
 
+      ctx.save();
+      if (shakeTime > 0) {
+        const t = shakeTime / 0.25; // 0..1
+        const strength = 6 * t;
+        const sx = (Math.random() * 2 - 1) * strength;
+        const sy = (Math.random() * 2 - 1) * strength;
+        ctx.translate(sx, sy);
+      }
+
       drawBackground();
       drawWaterRegion();
       drawObjects();
@@ -1215,6 +1220,8 @@
       drawSplash();
       drawGameOverOverlay();
       drawWinOverlay();
+
+      ctx.restore();
 
       requestAnimationFrame(render);
     }
