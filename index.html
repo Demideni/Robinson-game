@@ -15,6 +15,7 @@
       background: #021b3b;
       color: #fff;
     }
+
     #ui {
       position: absolute;
       top: 0;
@@ -35,10 +36,14 @@
       gap: 10px;
       pointer-events: auto;
     }
+    /* Логотип как картинка */
     #logo {
-      font-weight: 800;
-      letter-spacing: 1px;
-      font-size: 18px;
+      width: 130px;
+      height: 32px;
+      background: url('assets/logo_robinson.png') no-repeat left center / contain;
+      text-indent: -9999px;
+      overflow: hidden;
+      flex-shrink: 0;
     }
 
     button {
@@ -58,13 +63,27 @@
       cursor: default;
       box-shadow: none;
     }
+
     #auth-panel {
       display: flex;
       gap: 6px;
       justify-content: flex-end;
       pointer-events: auto;
       padding: 0 2px;
+      flex-shrink: 0;
     }
+
+    /* Кнопка меню в правом верхнем углу */
+    #menu-btn {
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      border-radius: 50%;
+      background: url('assets/btn_menu.png') center/contain no-repeat;
+      box-shadow: 0 2px 6px rgba(0,0,0,.4);
+      font-size: 0;
+    }
+
     #stats {
       display: none;
       justify-content: space-between;
@@ -91,7 +110,7 @@
     #splash {
       position: fixed;
       inset: 0;
-      background: radial-gradient(circle at top, #0747a6 0%, #021b3b 40%, #000814 100%);
+      background: #000 url('assets/splash_bg.png') center/cover no-repeat;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -110,6 +129,8 @@
       display: flex;
       flex-direction: column;
       gap: 16px;
+      color: #ffffff;
+      text-shadow: 0 2px 6px rgba(0,0,0,0.7);
     }
     #splash-logo {
       font-size: 24px;
@@ -122,17 +143,22 @@
     }
     #splash-subtitle {
       font-size: 14px;
-      opacity: 0.85;
+      opacity: 0.9;
     }
     #splash-hint {
       font-size: 12px;
-      opacity: 0.6;
+      opacity: 0.7;
     }
+    /* Кнопка начать игру как картинка */
     #splash-start-btn {
-      margin-top: 4px;
-      padding: 12px 24px;
-      font-size: 16px;
-      width: 100%;
+      margin: 8px auto 0;
+      padding: 0;
+      width: 220px;
+      height: 60px;
+      background: url('assets/btn_splash_start.png') center/contain no-repeat;
+      border-radius: 0;
+      box-shadow: none;
+      font-size: 0;
     }
 
     /* Нижнее табло */
@@ -149,6 +175,7 @@
       padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px));
       z-index: 2000;
       pointer-events: auto;
+      backdrop-filter: blur(10px);
     }
     #bottom-ui, #bottom-ui * {
       color: #ffffff;
@@ -174,37 +201,35 @@
     #bottom-bet, #auto-toggle {
       cursor: pointer;
     }
+
+    /* Кнопка Play по центру снизу как картинка */
     #start-round-btn {
-      background: radial-gradient(circle at 30% 20%, #ffffff, #ff1744);
+      width: 80px;
+      height: 80px;
+      padding: 0;
       border-radius: 50%;
-      width: 72px;
-      height: 72px;
-      font-size: 30px;
-      font-weight: 800;
-      color: #000;
-      border: none;
+      background: url('assets/btn_play.png') center/contain no-repeat;
       box-shadow: 0 4px 14px rgba(0,0,0,0.65);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      pointer-events: auto;
+      font-size: 0;
     }
     #start-round-btn:disabled {
       opacity: 0.4;
       box-shadow: none;
+      filter: grayscale(1);
     }
 
+    /* Кнопка "Играть снова" — картинка по центру */
     #retry-btn {
       position: absolute;
       left: 50%;
       top: 50%;
       transform: translate(-50%, 120%);
-      padding: 10px 24px;
-      border-radius: 999px;
-      font-size: 16px;
-      font-weight: 700;
-      background: #ffffff;
-      color: #000;
+      padding: 0;
+      width: 200px;
+      height: 60px;
+      border-radius: 0;
+      font-size: 0;
+      background: url('assets/btn_retry.png') center/contain no-repeat;
       border: none;
       box-shadow: 0 4px 10px rgba(0,0,0,0.7);
       z-index: 2100;
@@ -212,6 +237,44 @@
     }
     #retry-btn:active {
       transform: translate(-50%, 120%) scale(0.97);
+    }
+
+    /* Меню справа сверху */
+    #menu-panel {
+      position: absolute;
+      top: 52px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.9);
+      border-radius: 16px;
+      padding: 12px;
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 2100;
+      min-width: 190px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.6);
+    }
+    #menu-panel.open {
+      display: flex;
+    }
+    .menu-item {
+      width: 180px;
+      height: 48px;
+      padding: 0;
+      border-radius: 999px;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-size: contain;
+      box-shadow: none;
+      font-size: 0;
+      background-color: transparent;
+    }
+    #menu-deposit {
+      background-image: url('assets/btn_deposit.png');
+    }
+    #menu-withdraw {
+      background-image: url('assets/btn_withdraw.png');
     }
   </style>
 </head>
@@ -233,11 +296,10 @@
   <!-- Верхний UI -->
   <div id="ui">
     <div id="ui-top">
-      <div id="logo">🏝️ РОБИНЗОН</div>
-    </div>
-
-    <div id="auth-panel">
-      <button id="deposit-btn">Депозит</button>
+      <div id="logo">Робинзон</div>
+      <div id="auth-panel">
+        <button id="menu-btn" aria-label="Меню"></button>
+      </div>
     </div>
 
     <div id="stats">
@@ -245,6 +307,12 @@
       <div id="balance-box">Баланс: <span id="balance">0.00</span> 🪙</div>
     </div>
     <div id="status-text">Сделай ставку и нажми ▶</div>
+  </div>
+
+  <!-- Меню -->
+  <div id="menu-panel">
+    <button class="menu-item" id="menu-deposit">Deposit</button>
+    <button class="menu-item" id="menu-withdraw">Withdraw</button>
   </div>
 
   <!-- Нижнее табло -->
@@ -289,7 +357,6 @@
     const balanceEl = document.getElementById("balance");
     const balanceBottomEl = document.getElementById("balance-bottom");
     const betBottomEl = document.getElementById("bet-bottom");
-    const depositBtn = document.getElementById("deposit-btn");
     const retryBtn = document.getElementById("retry-btn");
 
     const autoToggleEl = document.getElementById("auto-toggle");
@@ -297,6 +364,11 @@
 
     const splash = document.getElementById("splash");
     const splashStartBtn = document.getElementById("splash-start-btn");
+
+    const menuBtn = document.getElementById("menu-btn");
+    const menuPanel = document.getElementById("menu-panel");
+    const menuDepositBtn = document.getElementById("menu-deposit");
+    const menuWithdrawBtn = document.getElementById("menu-withdraw");
 
     const splashSound = document.getElementById("splash-sound");
     const winSound = document.getElementById("win-sound");
@@ -366,7 +438,6 @@
     const BIRD_PROB   = 0.06;
     const BONUS_PROB  = 0.06;
 
-    // Вода/остров выше, чтобы не перекрывало меню
     const WATER_LINE_REL = 0.8;
     const GRAVITY_BASE = 75;
     let gravity = GRAVITY_BASE;
@@ -384,11 +455,9 @@
     let winAnimTime = 0;
 
     let bonusParticles = [];
+    let shakeTime = 0;
 
-    // тряска экрана при ударе о птицу
-    let shakeTime = 0; // сек
-
-    // RTP и история (под капотом)
+    // RTP
     let totalBet = 0;
     let totalPayout = 0;
     const TARGET_RTP = 0.96;
@@ -414,7 +483,7 @@
     }
 
     function updateHistoryUI() {
-      // история не показывается
+      // история не отображается
       return;
     }
 
@@ -482,13 +551,40 @@
       balanceBottomEl.textContent = userBalance.toFixed(2);
     }
 
-    depositBtn.addEventListener("click", () => {
+    // Меню
+    menuBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      menuPanel.classList.toggle("open");
+    });
+
+    // Клик по экрану — можно, если захочешь закрывать меню при тапе вне
+    document.addEventListener("click", (e) => {
+      if (!menuPanel.contains(e.target) && e.target !== menuBtn) {
+        // можно раскомментировать, если хочешь автозакрытие
+        // menuPanel.classList.remove("open");
+      }
+    });
+
+    menuDepositBtn.addEventListener("click", () => {
       const amountStr = prompt("Пополнить баланс (монеты):");
       const amount = parseFloat(amountStr || "0");
       if (!amount || amount <= 0) return;
       userBalance += amount;
       updateBalanceUI();
       statusEl.textContent = "Баланс пополнен";
+    });
+
+    menuWithdrawBtn.addEventListener("click", () => {
+      const amountStr = prompt("Вывести баланс (монеты):");
+      const amount = parseFloat(amountStr || "0");
+      if (!amount || amount <= 0) return;
+      if (amount > userBalance) {
+        alert("Недостаточно средств для вывода");
+        return;
+      }
+      userBalance -= amount;
+      updateBalanceUI();
+      statusEl.textContent = "Баланс выведен";
     });
 
     document.getElementById("bottom-bet").addEventListener("click", () => {
@@ -781,7 +877,7 @@
         if (robinson.vy < 0) robinson.vy = 0;
       }
 
-      // падение в воду = проигрыш (без звука проигрыша)
+      // падение в воду = проигрыш
       if (robinson.y + robinson.height / 2 >= waterY) {
         state = "lost";
         statusEl.textContent = "Робинзон упал в воду";
@@ -867,7 +963,6 @@
             birdSound.currentTime = 0;
             birdSound.play().catch(() => {});
           }
-          // тряска при ударе об птицу
           shakeTime = 0.25;
         }
 
@@ -923,7 +1018,6 @@
 
       ctx.save();
       ctx.beginPath();
-      // рисуем с запасом за экран влево/вправо, чтобы не было пустоты
       ctx.moveTo(-40, baseY + Math.sin(time * 2) * 2);
       for (let x = -40; x <= w + 40; x += 20) {
         const y = baseY + Math.sin((x / waveLen) + time * 2) * waveAmp;
@@ -940,8 +1034,6 @@
 
       ctx.fillStyle = g;
       ctx.fill();
-
-      // пунктир по поверхности воды убран
       ctx.restore();
     }
 
@@ -1204,7 +1296,7 @@
 
       ctx.save();
       if (shakeTime > 0) {
-        const t = shakeTime / 0.25; // 0..1
+        const t = shakeTime / 0.25;
         const strength = 6 * t;
         const sx = (Math.random() * 2 - 1) * strength;
         const sy = (Math.random() * 2 - 1) * strength;
