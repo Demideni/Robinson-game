@@ -66,16 +66,17 @@
       padding: 0 2px;
     }
     #stats {
-      display: none;
+      display: none; /* скрыто сверху */
       justify-content: space-between;
       font-size: 14px;
       text-shadow: 0 1px 3px rgba(0,0,0,.7);
       padding: 0 2px;
     }
     #status-text {
-      display: none;
+      display: none; /* скрыто сверху */
       font-weight: 600;
     }
+
     #canvas-container {
       position: absolute;
       inset: 0;
@@ -141,11 +142,11 @@
       right: 0;
       bottom: 0;
       min-height: 80px;
-      background: rgba(0, 0, 0, 0.75);
+      background: rgba(0, 0, 0, 0.85);
       display: flex;
       align-items: center;
       justify-content: space-around;
-      padding: 8px 16px calc(8px + env(safe-area-inset-bottom, 0px));
+      padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px));
       z-index: 2000;
       pointer-events: auto;
     }
@@ -170,11 +171,11 @@
       font-size: 18px;
       font-weight: 700;
     }
-    #bottom-bet {
+    #bottom-bet, #auto-toggle {
       cursor: pointer;
     }
     #start-round-btn {
-      background: #ffffff;
+      background: radial-gradient(circle at 30% 20%, #ffffff, #ff1744);
       border-radius: 50%;
       width: 72px;
       height: 72px;
@@ -182,7 +183,7 @@
       font-weight: 800;
       color: #000;
       border: none;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.55);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.65);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -211,6 +212,28 @@
     }
     #retry-btn:active {
       transform: translate(-50%, 120%) scale(0.97);
+    }
+
+    /* Панель истории */
+    #history-panel {
+      position: absolute;
+      right: 8px;
+      top: 70px;
+      background: rgba(0,0,0,0.55);
+      border-radius: 12px;
+      padding: 6px 8px;
+      font-size: 11px;
+      max-width: 170px;
+      max-height: 120px;
+      overflow: hidden;
+      z-index: 1500;
+      pointer-events: none;
+    }
+    #history-panel div {
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      opacity: 0.9;
     }
   </style>
 </head>
@@ -259,7 +282,15 @@
       <div class="bottom-label">Bet</div>
       <div class="bottom-value" id="bet-bottom">1.00</div>
     </div>
+
+    <div class="bottom-item" id="auto-toggle">
+      <div class="bottom-label">Auto</div>
+      <div class="bottom-value" id="auto-status">Off</div>
+    </div>
   </div>
+
+  <!-- История -->
+  <div id="history-panel">История пуста</div>
 
   <button id="retry-btn">Играть снова</button>
 
@@ -283,6 +314,10 @@
     const betBottomEl = document.getElementById("bet-bottom");
     const depositBtn = document.getElementById("deposit-btn");
     const retryBtn = document.getElementById("retry-btn");
+
+    const autoToggleEl = document.getElementById("auto-toggle");
+    const autoStatusEl = document.getElementById("auto-status");
+    const historyPanel = document.getElementById("history-panel");
 
     const splash = document.getElementById("splash");
     const splashStartBtn = document.getElementById("splash-start-btn");
@@ -371,6 +406,45 @@
 
     let bonusParticles = [];
 
+    // RTP и история
+    let totalBet = 0;
+    let totalPayout = 0;
+    const TARGET_RTP = 0.96;
+    let roundHistory = [];
+
+    // автоигра
+    let autoPlay = false;
+    let autoRestartTimer = 0;
+
+    function getCurrentRTP() {
+      if (totalBet <= 0) return TARGET_RTP;
+      return totalPayout / totalBet;
+    }
+
+    function getRTPFactor() {
+      if (totalBet < 50) return 1; // пока мало статистики — не лезем
+      const current = getCurrentRTP();
+      const diff = TARGET_RTP - current; // >0 — надо больше отдавать
+      let factor = 1 + diff * 0.7;       // мягкий коэффициент
+      if (factor < 0.5) factor = 0.5;
+      if (factor > 1.6) factor = 1.6;
+      return factor;
+    }
+
+    function updateHistoryUI() {
+      if (!historyPanel) return;
+      if (!roundHistory.length) {
+        historyPanel.textContent = "История пуста";
+        return;
+      }
+      const lines = roundHistory.slice(0, 6).map(r => {
+        const tag = r.result === "won" ? "W" : "L";
+        const color = r.result === "won" ? "#6eff9a" : "#ff8585";
+        return `<div style="color:${color}">${tag} • bet ${r.bet.toFixed(2)} • x${r.multiplier.toFixed(2)} • ${r.win.toFixed(2)}</div>`;
+      });
+      historyPanel.innerHTML = lines.join("");
+    }
+
     function resetRound() {
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
@@ -397,6 +471,7 @@
       cameraLockY = null;
       gameOverAnimTime = 0;
       winAnimTime = 0;
+      autoRestartTimer = 0;
       multiplierEl.textContent = "1.00x";
 
       retryBtn.style.display = "none";
@@ -425,6 +500,7 @@
       updateBalanceUI();
       statusEl.textContent = "Демо-режим: у тебя 100 монет";
       betBottomEl.textContent = baseBet.toFixed(2);
+      updateHistoryUI();
     }
 
     function updateBalanceUI() {
@@ -449,6 +525,11 @@
       betBottomEl.textContent = baseBet.toFixed(2);
     });
 
+    autoToggleEl.addEventListener("click", () => {
+      autoPlay = !autoPlay;
+      autoStatusEl.textContent = autoPlay ? "On" : "Off";
+    });
+
     function startRound() {
       if (!allLoaded) return;
 
@@ -457,6 +538,7 @@
         return;
       }
 
+      totalBet += baseBet;
       userBalance -= baseBet;
       updateBalanceUI();
 
@@ -487,13 +569,22 @@
       splash.classList.add("hidden");
     });
 
-    function finishRound(win) {
-      if (win) {
-        const winAmount = baseBet * multiplier;
+    function finishRound(result) {
+      let winAmount = 0;
+      if (result === "won") {
+        winAmount = baseBet * multiplier;
         userBalance += winAmount;
+        totalPayout += winAmount;
         updateBalanceUI();
-        statusEl.textContent += ` Выигрыш: ${winAmount.toFixed(2)}.`;
       }
+      roundHistory.unshift({
+        result,
+        bet: baseBet,
+        multiplier,
+        win: winAmount
+      });
+      if (roundHistory.length > 12) roundHistory.pop();
+      updateHistoryUI();
     }
 
     function getLastOfType(type) {
@@ -558,18 +649,28 @@
       { key: "x100", w: 1  },
     ];
 
-    function randomBonusKey() {
+    function randomBonusKey(rtpFactor) {
+      const factor = rtpFactor || 1;
+      const weights = BONUS_WEIGHTS.map(b => ({ ...b }));
+
+      // если RTP ниже цели (factor > 1) — чуть бафаем редкие крупные множители
+      for (const b of weights) {
+        if (b.key === "x10" || b.key === "x20" || b.key === "x50" || b.key === "x100") {
+          b.w *= factor;
+        }
+      }
+
       let total = 0;
-      for (const b of BONUS_WEIGHTS) total += b.w;
+      for (const b of weights) total += b.w;
       let r = Math.random() * total;
-      for (const b of BONUS_WEIGHTS) {
+      for (const b of weights) {
         if (r < b.w) return b.key;
         r -= b.w;
       }
       return "x2";
     }
 
-    function spawnBonus() {
+    function spawnBonus(rtpFactor) {
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
 
@@ -583,7 +684,7 @@
 
       objects.push({
         type: "bonus",
-        kind: randomBonusKey(),
+        kind: randomBonusKey(rtpFactor),
         x,
         y,
         w: size,
@@ -666,6 +767,16 @@
       }
       bonusParticles = bonusParticles.filter(p => p.life < p.maxLife);
 
+      // автоигра — ждём окончание раунда, затем запускаем новый
+      if ((state === "won" || state === "lost") && autoPlay) {
+        autoRestartTimer += dt;
+        if (autoRestartTimer > 1.5 && !startBtn.disabled && userBalance >= baseBet) {
+          autoRestartTimer = 0;
+          startRound();
+          return;
+        }
+      }
+
       if (state === "idle" || state === "won") {
         cameraY = -(robinson.y - h * 0.55) * 0.1;
         cameraLockY = null;
@@ -702,7 +813,7 @@
           hasSplashed = true;
         }
         heroVisible = false;
-        finishRound(false);
+        finishRound("lost");
         retryBtn.style.display = "block";
         gameOverAnimTime = 0;
 
@@ -715,10 +826,19 @@
         return;
       }
 
-      const islandProb = Math.max(0.0005, ISLAND_BASE_PROB / (1 + multiplier * 0.1));
+      const rtpFactor = getRTPFactor();
+
+      const islandProb = Math.max(
+        0.0005,
+        ISLAND_BASE_PROB / (1 + multiplier * 0.1)
+      ) * (rtpFactor > 1 ? 1.15 : 0.9);
+
+      const birdProb  = BIRD_PROB; // птиц не трогаем
+      const bonusProb = BONUS_PROB * (rtpFactor > 1 ? 1.2 : 0.8);
+
       if (Math.random() < islandProb) spawnIsland();
-      if (Math.random() < BIRD_PROB)  spawnBird();
-      if (Math.random() < BONUS_PROB) spawnBonus();
+      if (Math.random() < birdProb)  spawnBird();
+      if (Math.random() < bonusProb) spawnBonus(rtpFactor);
 
       const dx = OBJECT_SPEED * dt;
       objects.forEach((o) => { o.x -= dx; });
@@ -748,15 +868,13 @@
           startBtn.disabled = false;
           retryBtn.style.display = "block";
           winAnimTime = 0;
-          finishRound(true);
+          finishRound("won");
 
-          // 🎵 звук победы
           if (winSound) {
             winSound.currentTime = 0;
             winSound.play().catch(() => {});
           }
-          vibrate([80, 60, 80]); // лёгкая вибрация победы
-
+          vibrate([80, 60, 80]);
           break;
         }
 
@@ -915,10 +1033,15 @@
       ctx.font = "bold 20px system-ui";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.strokeStyle = "rgba(0,0,0,0.7)";
+
+      // лёгкое свечение выигрыша
+      ctx.strokeStyle = "rgba(0,0,0,0.8)";
       ctx.lineWidth = 4;
       ctx.strokeText(text, px, py);
-      ctx.fillStyle = "#ffffff";
+      const grad = ctx.createLinearGradient(px - 30, py - 10, px + 30, py + 10);
+      grad.addColorStop(0, "#ffe082");
+      grad.addColorStop(1, "#ffffff");
+      ctx.fillStyle = grad;
       ctx.fillText(text, px, py);
       ctx.restore();
     }
@@ -1016,7 +1139,7 @@
       const img = assets.win;
 
       const cx = w / 2;
-      const cy = h * 0.32; // 👈 надпись опущена на ~10% ниже
+      const cy = h * 0.32; // надпись чуть ниже, как просил
 
       ctx.globalAlpha = 0.65 * ease;
       const glowRadius = 120;
