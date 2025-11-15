@@ -66,17 +66,14 @@
       padding: 0 2px;
     }
     #stats {
-      display: none; /* скрыли строку с множителем и балансом */
+      display: none;
       justify-content: space-between;
       font-size: 14px;
       text-shadow: 0 1px 3px rgba(0,0,0,.7);
       padding: 0 2px;
     }
     #status-text {
-      display: none; /* скрыли строку статуса */
-      font-weight: 600;
-    }
-    #balance-box {
+      display: none;
       font-weight: 600;
     }
     #canvas-container {
@@ -89,7 +86,7 @@
       display: block;
     }
 
-    /* Мобильная заставка */
+    /* Заставка */
     #splash {
       position: fixed;
       inset: 0;
@@ -196,7 +193,6 @@
       box-shadow: none;
     }
 
-    /* Кнопка "Играть снова" поверх оверлея */
     #retry-btn {
       position: absolute;
       left: 50%;
@@ -265,15 +261,15 @@
     </div>
   </div>
 
-  <!-- Кнопка "Играть снова" -->
   <button id="retry-btn">Играть снова</button>
 
   <div id="canvas-container">
     <canvas id="game"></canvas>
   </div>
 
-  <!-- Звук всплеска воды -->
+  <!-- Звуки -->
   <audio id="splash-sound" src="assets/splash.mp3" preload="auto"></audio>
+  <audio id="win-sound" src="assets/win.mp3" preload="auto"></audio>
 
   <script>
     const canvas = document.getElementById("game");
@@ -292,6 +288,7 @@
     const splashStartBtn = document.getElementById("splash-start-btn");
 
     const splashSound = document.getElementById("splash-sound");
+    const winSound = document.getElementById("win-sound");
 
     function resizeCanvas() {
       const rect = canvas.getBoundingClientRect();
@@ -369,11 +366,9 @@
     let hasSplashed = false;
     let heroVisible = true;
 
-    // анимация проигрыша/победы
     let gameOverAnimTime = 0;
     let winAnimTime = 0;
 
-    // частицы бонусов
     let bonusParticles = [];
 
     function resetRound() {
@@ -470,7 +465,6 @@
       statusEl.textContent = "Робинзон в полёте...";
       startBtn.disabled = true;
 
-      // разблокируем звук на iOS
       if (splashSound) {
         splashSound.play().then(() => {
           splashSound.pause();
@@ -655,7 +649,6 @@
       const h = canvas.height / window.devicePixelRatio;
       const waterY = h * WATER_LINE_REL;
 
-      // частицы всплеска
       for (const p of splashParticles) {
         p.x += p.vx * dt;
         p.y += p.vy * dt;
@@ -664,7 +657,6 @@
       }
       splashParticles = splashParticles.filter(p => p.life < p.maxLife);
 
-      // частицы бонусов
       for (const p of bonusParticles) {
         p.x += p.vx * dt;
         p.y += p.vy * dt;
@@ -751,13 +743,20 @@
         if (!isColliding(heroBox, box)) continue;
 
         if (o.type === "island") {
-          // победа – остров НЕ удаляем
           state = "won";
           statusEl.textContent = "Победа! Робинзон приземлился на остров";
           startBtn.disabled = false;
           retryBtn.style.display = "block";
           winAnimTime = 0;
           finishRound(true);
+
+          // 🎵 звук победы
+          if (winSound) {
+            winSound.currentTime = 0;
+            winSound.play().catch(() => {});
+          }
+          vibrate([80, 60, 80]); // лёгкая вибрация победы
+
           break;
         }
 
@@ -806,7 +805,6 @@
       }
     }
 
-    // всё ниже линии островов — море
     function drawWaterRegion() {
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
@@ -965,7 +963,6 @@
       }
     }
 
-    // проигрышный оверлей
     function drawGameOverOverlay() {
       if (state !== "lost") return;
 
@@ -1001,7 +998,6 @@
       ctx.restore();
     }
 
-    // победный оверлей "Ты победил!"
     function drawWinOverlay() {
       if (state !== "won") return;
 
@@ -1013,18 +1009,15 @@
 
       ctx.save();
 
-      // затемнение фона
       ctx.globalAlpha = 0.55 * ease;
       ctx.fillStyle = "rgba(0, 0, 0, 1)";
       ctx.fillRect(0, 0, w, h);
 
       const img = assets.win;
 
-      // координаты центра эффекта (чуть выше середины)
       const cx = w / 2;
-      const cy = h * 0.22;
+      const cy = h * 0.32; // 👈 надпись опущена на ~10% ниже
 
-      // светящееся пятно под надписью
       ctx.globalAlpha = 0.65 * ease;
       const glowRadius = 120;
       const grad = ctx.createRadialGradient(
@@ -1039,7 +1032,6 @@
       ctx.arc(cx, cy, glowRadius, 0, Math.PI * 2);
       ctx.fill();
 
-      // искры по кругу вокруг надписи
       ctx.globalAlpha = 0.9 * ease;
       const sparkleCount = 10;
       for (let i = 0; i < sparkleCount; i++) {
@@ -1057,7 +1049,6 @@
         ctx.translate(x, y);
         ctx.rotate(angle * 2);
 
-        // маленький "крестик" искры
         ctx.beginPath();
         ctx.moveTo(-size, 0);
         ctx.lineTo(size, 0);
@@ -1070,23 +1061,21 @@
         ctx.restore();
       }
 
-      // сама PNG "Ты победил!"
       ctx.globalAlpha = ease;
       if (img) {
         const maxW = w * 0.75;
         const maxH = h * 0.5;
         const baseScale = Math.min(maxW / img.width, maxH / img.height);
-        const scale = baseScale * (0.9 + 0.12 * ease); // лёгкий zoom-in
+        const scale = baseScale * (0.9 + 0.12 * ease);
 
         const iw = img.width * scale;
         const ih = img.height * scale;
 
         const x = cx - iw / 2;
-        const y = cy - ih / 2; // поднято вверх
+        const y = cy - ih / 2;
 
         ctx.drawImage(img, x, y, iw, ih);
       } else {
-        // резерв, если PNG ещё нет
         ctx.font = "bold 26px system-ui";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
