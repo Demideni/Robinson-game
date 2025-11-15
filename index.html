@@ -93,7 +93,7 @@
       position: absolute;
       left: 0;
       right: 0;
-      top: 75%;               /* центр нижней половины экрана */
+      top: 75%;
       transform: translateY(-50%);
       padding: 6px 10px;
       display: flex;
@@ -253,8 +253,7 @@
       bg: "assets/bg_ocean.png",
       rob: "assets/robinson.png",
       island: "assets/island_long.png",
-      // одна картинка птицы, не спрайт-лист
-      bird: "assets/bird_spritesheet.png",
+      bird: "assets/bird_spritesheet.png", // статичная птица
       x2: "assets/bonus_x2.png",
       x3: "assets/bonus_x3.png",
       x5: "assets/bonus_x5.png",
@@ -275,7 +274,7 @@
       initProfile();
     })();
 
-    let state = "idle";
+    let state = "idle"; // idle | flying | won | lost
     let robinson;
     let objects;
     let time;
@@ -290,7 +289,7 @@
     const ISLAND_BASE_PROB = 0.012;
     const BIRD_PROB   = 0.012;
     const BONUS_PROB  = 0.1;
-    const WATER_LINE_REL = 0.92;
+    const WATER_LINE_REL = 0.99; // почти самый низ экрана
     const GRAVITY_BASE = 75;
     let gravity = GRAVITY_BASE;
 
@@ -306,7 +305,7 @@
         x: w * HERO_X_REL,
         y: h * 0.5,
         vy: -170,
-        width: 72,   // уменьшенный Робинзон
+        width: 72,
         height: 72,
       };
 
@@ -324,8 +323,7 @@
       const spacing = 150;
       const startBonuses = ["x2", "x3", "x5", "x2", "x10", "x3"];
 
-      // бонусы увеличены на 20%: 32 → 38
-      const bonusSize = 38;
+      const bonusSize = 38; // +20%
 
       startBonuses.forEach((kind, i) => {
         const yOffset = (Math.random() * 0.12 - 0.06) * h;
@@ -336,6 +334,7 @@
           y: robinson.y + yOffset,
           w: bonusSize,
           h: bonusSize,
+          phase: Math.random() * Math.PI * 2, // фаза для движения
         });
       });
     }
@@ -380,7 +379,6 @@
       }
     });
 
-    // Заставка: убираем оверлей по нажатию
     splashStartBtn.addEventListener("click", () => {
       splash.classList.add("hidden");
     });
@@ -428,7 +426,7 @@
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
 
-      const size = 58; // птица на 20% меньше прежних 72
+      const size = 58; // птица меньше
       const y = h * (0.35 + Math.random() * 0.35);
       const x = w + size * 0.8;
       const last = getLastOfType("bird");
@@ -442,6 +440,7 @@
         y,
         w: size,
         h: size,
+        phase: Math.random() * Math.PI * 2, // фаза для движения
       });
     }
 
@@ -485,6 +484,7 @@
         y,
         w: size,
         h: size,
+        phase: Math.random() * Math.PI * 2, // фаза для движения
       });
     }
 
@@ -498,26 +498,32 @@
     }
 
     function update(dt) {
-      if (state !== "flying") return;
+      if (state === "idle" || state === "won") return;
 
       time += dt;
       bonusPulse = Math.max(0, bonusPulse - dt);
-
-      // время для анимации Робинзона
       robinsonAnimTime += dt;
 
-      // "крик" случайными короткими вспышками
+      // крик
       if (shoutVisible > 0) {
         shoutVisible -= dt;
-      } else if (Math.random() < 0.8 * dt) { // вероятность крика
-        shoutVisible = 0.35; // длительность пузыря
+      } else if (state === "flying" && Math.random() < 0.8 * dt) {
+        shoutVisible = 0.35;
       }
-
-      // множитель НЕ растёт по времени — только от бонусов и птицы
 
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
       const waterY = h * WATER_LINE_REL;
+
+      // если уже проиграл — просто продолжаем падать ниже экрана
+      if (state === "lost") {
+        robinson.vy += gravity * dt;
+        robinson.y += robinson.vy * dt;
+        return;
+      }
+
+      // состояние полёта
+      if (state !== "flying") return;
 
       robinson.vy += gravity * dt;
       robinson.y += robinson.vy * dt;
@@ -528,6 +534,7 @@
         if (robinson.vy < 0) robinson.vy = 0;
       }
 
+      // проигрыш прямо у самого низа
       if (robinson.y + robinson.height / 2 >= waterY) {
         state = "lost";
         statusEl.textContent = "Робинзон упал в воду";
@@ -619,9 +626,8 @@
 
       const pulse = bonusPulse > 0 ? (bonusPulse / 0.25) : 0;
 
-      // лёгкое покачивание и подпрыгивание
-      const tilt = Math.sin(robinsonAnimTime * 6) * 0.18; // угол в радианах
-      const bobY = Math.sin(robinsonAnimTime * 3) * 4;   // вертикальное подрагивание
+      const tilt = Math.sin(robinsonAnimTime * 6) * 0.18;
+      const bobY = Math.sin(robinsonAnimTime * 3) * 4;
 
       const scale = 1 + 0.25 * pulse;
 
@@ -630,7 +636,6 @@
       ctx.rotate(tilt);
       ctx.scale(scale, scale);
 
-      // тело Робинзона без ног
       ctx.drawImage(
         img,
         -robinson.width / 2,
@@ -641,7 +646,6 @@
 
       ctx.restore();
 
-      // пузырь "А-А-А!" если кричит
       if (shoutVisible > 0) {
         const alpha = Math.min(1, shoutVisible / 0.15);
         const px = robinson.x + robinson.width * 0.55;
@@ -657,7 +661,6 @@
         const h = 24;
         const r = 8;
 
-        // пузырь
         ctx.beginPath();
         ctx.moveTo(px - w/2 + r, py - h/2);
         ctx.lineTo(px + w/2 - r, py - h/2);
@@ -672,7 +675,6 @@
         ctx.fill();
         ctx.stroke();
 
-        // "хвостик" пузыря
         ctx.beginPath();
         ctx.moveTo(px - 4, py + h/2);
         ctx.lineTo(px - 12, py + h/2 + 10);
@@ -681,7 +683,6 @@
         ctx.fill();
         ctx.stroke();
 
-        // текст
         ctx.fillStyle = "#000";
         ctx.font = "bold 12px system-ui";
         ctx.textAlign = "center";
@@ -694,6 +695,14 @@
 
     function drawObjects() {
       for (const o of objects) {
+        let drawY = o.y;
+
+        if (o.type === "bonus" || o.type === "bird") {
+          const amp = o.type === "bonus" ? 4 : 6;
+          const freq = o.type === "bonus" ? 3 : 2.5;
+          drawY = o.y + Math.sin(time * freq + (o.phase || 0)) * amp;
+        }
+
         if (o.type === "island" && assets.island) {
           ctx.drawImage(
             assets.island,
@@ -707,17 +716,16 @@
           ctx.drawImage(
             assets[o.kind],
             o.x - o.w / 2,
-            o.y - o.h / 2,
+            drawY - o.h / 2,
             o.w,
             o.h
           );
         }
         if (o.type === "bird" && assets.bird) {
-          // статичная птица
           ctx.drawImage(
             assets.bird,
             o.x - o.w / 2,
-            o.y - o.h / 2,
+            drawY - o.h / 2,
             o.w,
             o.h
           );
