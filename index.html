@@ -66,14 +66,14 @@
       padding: 0 2px;
     }
     #stats {
-      display: none; /* скрыто сверху */
+      display: none;
       justify-content: space-between;
       font-size: 14px;
       text-shadow: 0 1px 3px rgba(0,0,0,.7);
       padding: 0 2px;
     }
     #status-text {
-      display: none; /* скрыто сверху */
+      display: none;
       font-weight: 600;
     }
 
@@ -301,6 +301,9 @@
   <!-- Звуки -->
   <audio id="splash-sound" src="assets/splash.mp3" preload="auto"></audio>
   <audio id="win-sound" src="assets/win.mp3" preload="auto"></audio>
+  <audio id="bonus-sound" src="assets/bonus_hit.mp3" preload="auto"></audio>
+  <audio id="bird-sound" src="assets/bird_hit.mp3" preload="auto"></audio>
+  <audio id="wind-sound" src="assets/wind.mp3" preload="auto" loop></audio>
 
   <script>
     const canvas = document.getElementById("game");
@@ -324,6 +327,9 @@
 
     const splashSound = document.getElementById("splash-sound");
     const winSound = document.getElementById("win-sound");
+    const bonusSound = document.getElementById("bonus-sound");
+    const birdSound = document.getElementById("bird-sound");
+    const windSound = document.getElementById("wind-sound");
 
     function resizeCanvas() {
       const rect = canvas.getBoundingClientRect();
@@ -422,10 +428,10 @@
     }
 
     function getRTPFactor() {
-      if (totalBet < 50) return 1; // пока мало статистики — не лезем
+      if (totalBet < 50) return 1;
       const current = getCurrentRTP();
-      const diff = TARGET_RTP - current; // >0 — надо больше отдавать
-      let factor = 1 + diff * 0.7;       // мягкий коэффициент
+      const diff = TARGET_RTP - current;
+      let factor = 1 + diff * 0.7;
       if (factor < 0.5) factor = 0.5;
       if (factor > 1.6) factor = 1.6;
       return factor;
@@ -547,11 +553,24 @@
       statusEl.textContent = "Робинзон в полёте...";
       startBtn.disabled = true;
 
-      if (splashSound) {
-        splashSound.play().then(() => {
-          splashSound.pause();
-          splashSound.currentTime = 0;
+      // разблокируем и "пробуждаем" звуки
+      const unlockSound = (audio) => {
+        if (!audio) return;
+        audio.play().then(() => {
+          audio.pause();
+          audio.currentTime = 0;
         }).catch(() => {});
+      };
+      unlockSound(splashSound);
+      unlockSound(winSound);
+      unlockSound(bonusSound);
+      unlockSound(birdSound);
+      unlockSound(windSound);
+
+      // включаем ветер на время полета
+      if (windSound) {
+        windSound.currentTime = 0;
+        windSound.play().catch(() => {});
       }
     }
 
@@ -653,7 +672,6 @@
       const factor = rtpFactor || 1;
       const weights = BONUS_WEIGHTS.map(b => ({ ...b }));
 
-      // если RTP ниже цели (factor > 1) — чуть бафаем редкие крупные множители
       for (const b of weights) {
         if (b.key === "x10" || b.key === "x20" || b.key === "x50" || b.key === "x100") {
           b.w *= factor;
@@ -741,6 +759,13 @@
       }
     }
 
+    function stopWind() {
+      if (windSound) {
+        windSound.pause();
+        windSound.currentTime = 0;
+      }
+    }
+
     function update(dt) {
       time += dt;
       bonusPulse = Math.max(0, bonusPulse - dt);
@@ -767,7 +792,6 @@
       }
       bonusParticles = bonusParticles.filter(p => p.life < p.maxLife);
 
-      // автоигра — ждём окончание раунда, затем запускаем новый
       if ((state === "won" || state === "lost") && autoPlay) {
         autoRestartTimer += dt;
         if (autoRestartTimer > 1.5 && !startBtn.disabled && userBalance >= baseBet) {
@@ -817,6 +841,8 @@
         retryBtn.style.display = "block";
         gameOverAnimTime = 0;
 
+        stopWind();
+
         if (splashSound) {
           splashSound.currentTime = 0;
           splashSound.play().catch(() => {});
@@ -833,7 +859,7 @@
         ISLAND_BASE_PROB / (1 + multiplier * 0.1)
       ) * (rtpFactor > 1 ? 1.15 : 0.9);
 
-      const birdProb  = BIRD_PROB; // птиц не трогаем
+      const birdProb  = BIRD_PROB;
       const bonusProb = BONUS_PROB * (rtpFactor > 1 ? 1.2 : 0.8);
 
       if (Math.random() < islandProb) spawnIsland();
@@ -870,6 +896,8 @@
           winAnimTime = 0;
           finishRound("won");
 
+          stopWind();
+
           if (winSound) {
             winSound.currentTime = 0;
             winSound.play().catch(() => {});
@@ -885,6 +913,11 @@
           gravity = Math.min(gravity + 50, GRAVITY_BASE * 2.5);
           robinson.vy += 50;
           o._dead = true;
+
+          if (birdSound) {
+            birdSound.currentTime = 0;
+            birdSound.play().catch(() => {});
+          }
         }
 
         if (o.type === "bonus") {
@@ -897,6 +930,11 @@
           bonusPulse = 0.25;
           addBonusParticles(o.x, o.y);
           o._dead = true;
+
+          if (bonusSound) {
+            bonusSound.currentTime = 0;
+            bonusSound.play().catch(() => {});
+          }
         }
       }
 
@@ -1034,7 +1072,6 @@
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
 
-      // лёгкое свечение выигрыша
       ctx.strokeStyle = "rgba(0,0,0,0.8)";
       ctx.lineWidth = 4;
       ctx.strokeText(text, px, py);
@@ -1139,7 +1176,7 @@
       const img = assets.win;
 
       const cx = w / 2;
-      const cy = h * 0.32; // надпись чуть ниже, как просил
+      const cy = h * 0.32;
 
       ctx.globalAlpha = 0.65 * ease;
       const glowRadius = 120;
