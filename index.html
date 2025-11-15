@@ -265,7 +265,7 @@
     </div>
   </div>
 
-  <!-- Кнопка "Играть снова" поверх оверлея -->
+  <!-- Кнопка "Играть снова" -->
   <button id="retry-btn">Играть снова</button>
 
   <div id="canvas-container">
@@ -325,7 +325,7 @@
       x50: "assets/bonus_x50.png",
       x100: "assets/bonus_x100.png",
       gameover: "assets/game_over.png",
-      win: "assets/win.png"        // твоя картинка "Ты победил!"
+      win: "assets/win.png"
     };
 
     let allLoaded = false;
@@ -369,11 +369,11 @@
     let hasSplashed = false;
     let heroVisible = true;
 
-    // анимация гейм-овера / победы
+    // анимация проигрыша/победы
     let gameOverAnimTime = 0;
     let winAnimTime = 0;
 
-    // частицы для бонусов
+    // частицы бонусов
     let bonusParticles = [];
 
     function resetRound() {
@@ -806,7 +806,7 @@
       }
     }
 
-    // всё ниже линии островов — море с волнами
+    // всё ниже линии островов — море
     function drawWaterRegion() {
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
@@ -965,7 +965,7 @@
       }
     }
 
-    // PNG проигрыш
+    // проигрышный оверлей
     function drawGameOverOverlay() {
       if (state !== "lost") return;
 
@@ -1001,7 +1001,7 @@
       ctx.restore();
     }
 
-    // PNG победы "Ты победил!"
+    // победный оверлей "Ты победил!"
     function drawWinOverlay() {
       if (state !== "won") return;
 
@@ -1013,36 +1013,88 @@
 
       ctx.save();
 
+      // затемнение фона
       ctx.globalAlpha = 0.55 * ease;
       ctx.fillStyle = "rgba(0, 0, 0, 1)";
       ctx.fillRect(0, 0, w, h);
 
       const img = assets.win;
-      ctx.globalAlpha = ease;
 
+      // координаты центра эффекта (чуть выше середины)
+      const cx = w / 2;
+      const cy = h * 0.22;
+
+      // светящееся пятно под надписью
+      ctx.globalAlpha = 0.65 * ease;
+      const glowRadius = 120;
+      const grad = ctx.createRadialGradient(
+        cx, cy, 0,
+        cx, cy, glowRadius
+      );
+      grad.addColorStop(0, "rgba(255, 220, 120, 1)");
+      grad.addColorStop(0.4, "rgba(255, 180, 60, 0.9)");
+      grad.addColorStop(1, "rgba(0, 0, 0, 0)");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(cx, cy, glowRadius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // искры по кругу вокруг надписи
+      ctx.globalAlpha = 0.9 * ease;
+      const sparkleCount = 10;
+      for (let i = 0; i < sparkleCount; i++) {
+        const angle = time * 1.5 + (i * (Math.PI * 2 / sparkleCount));
+        const baseR = 70;
+        const wobble = Math.sin(time * 3 + i) * 8;
+        const r = baseR + wobble;
+
+        const x = cx + Math.cos(angle) * r;
+        const y = cy + Math.sin(angle) * r;
+
+        const size = 3 + Math.sin(time * 4 + i) * 1.2;
+
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle * 2);
+
+        // маленький "крестик" искры
+        ctx.beginPath();
+        ctx.moveTo(-size, 0);
+        ctx.lineTo(size, 0);
+        ctx.moveTo(0, -size);
+        ctx.lineTo(0, size);
+        ctx.strokeStyle = "rgba(255, 245, 200, 1)";
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+
+        ctx.restore();
+      }
+
+      // сама PNG "Ты победил!"
+      ctx.globalAlpha = ease;
       if (img) {
         const maxW = w * 0.75;
         const maxH = h * 0.5;
         const baseScale = Math.min(maxW / img.width, maxH / img.height);
-        const scale = baseScale * (0.9 + 0.12 * ease);
+        const scale = baseScale * (0.9 + 0.12 * ease); // лёгкий zoom-in
 
         const iw = img.width * scale;
         const ih = img.height * scale;
-        const x = w / 2 - iw / 2;
-        const y = h / 2 - ih / 2;
+
+        const x = cx - iw / 2;
+        const y = cy - ih / 2; // поднято вверх
 
         ctx.drawImage(img, x, y, iw, ih);
       } else {
-        // запасной вариант если PNG ещё нет
-        const text1 = "Ты победил!";
-        ctx.font = "bold 24px system-ui";
+        // резерв, если PNG ещё нет
+        ctx.font = "bold 26px system-ui";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.strokeStyle = "rgba(0,0,0,0.8)";
         ctx.lineWidth = 4;
-        ctx.strokeText(text1, w / 2, h / 2);
+        ctx.strokeText("Ты победил!", cx, cy);
         ctx.fillStyle = "#ffffff";
-        ctx.fillText(text1, w / 2, h / 2);
+        ctx.fillText("Ты победил!", cx, cy);
       }
 
       ctx.restore();
