@@ -149,18 +149,21 @@
       font-size: 12px;
       opacity: 0.7;
     }
-    /* Кнопка начать игру – уменьшена */
-    #splash-start-btn {
-      margin: 8px auto 0;
-      padding: 0;
-      width: 360px;
-      height: 110px;
-      max-width: 100%;
-      background: url('assets/btn_splash_start.png') center/contain no-repeat;
-      border-radius: 0;
-      box-shadow: none;
-      font-size: 0;
-    }
+    
+    /* Кнопка начать игру – чуть больше и без лишней рамки */
+#splash-start-btn {
+  margin: 8px auto 0;
+  padding: 0;
+  width: 380px;   /* было 360 */
+  height: 120px;  /* было 110 */
+  max-width: 100%;
+  background: url('assets/btn_splash_start.png') center no-repeat;
+  background-size: 100% 100%; /* картинка заполняет всю кнопку */
+  border-radius: 0;
+  box-shadow: none;
+  font-size: 0;
+}
+
 
     /* Нижнее табло – чуть ниже и выше, чтобы play помещалась */
     #bottom-ui {
@@ -203,43 +206,47 @@
       cursor: pointer;
     }
 
-    /* Кнопка Play – на 30% меньше от прошлой (112x112) */
-    #start-round-btn {
-      width: 112px;
-      height: 112px;
-      padding: 0;
-      border-radius: 50%;
-      background: url('assets/btn_play.png') center/contain no-repeat;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.65);
-      font-size: 0;
-    }
-    #start-round-btn:disabled {
-      opacity: 0.4;
-      box-shadow: none;
-      filter: grayscale(1);
-    }
+    /* Кнопка Play – чуть крупнее и картинка по всей площади */
+#start-round-btn {
+  width: 128px;   /* было 112 */
+  height: 128px;  /* было 112 */
+  padding: 0;
+  border-radius: 50%;
+  background: url('assets/btn_play.png') center no-repeat;
+  background-size: 100% 100%; /* растягиваем картинку на всю кнопку */
+  box-shadow: 0 4px 14px rgba(0,0,0,0.65);
+  font-size: 0;
+}
+#start-round-btn:disabled {
+  opacity: 0.4;
+  box-shadow: none;
+  filter: grayscale(1);
+}
 
-    /* Кнопка "Играть снова" – уменьшена */
-    #retry-btn {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, 120%);
-      padding: 0;
-      width: 360px;
-      height: 120px;
-      max-width: 90%;
-      border-radius: 0;
-      font-size: 0;
-      background: url('assets/btn_retry.png') center/contain no-repeat;
-      border: none;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.7);
-      z-index: 2100;
-      display: none;
-    }
-    #retry-btn:active {
-      transform: translate(-50%, 120%) scale(0.97);
-    }
+
+/* Кнопка "Играть снова" – побольше и без прозрачной рамки */
+#retry-btn {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, 120%);
+  padding: 0;
+  width: 380px;   /* было 360 */
+  height: 130px;  /* было 120 */
+  max-width: 90%;
+  border-radius: 0;
+  font-size: 0;
+  background: url('assets/btn_retry.png') center no-repeat;
+  background-size: 100% 100%; /* картинка ровно по кнопке */
+  border: none;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.7);
+  z-index: 2100;
+  display: none;
+}
+#retry-btn:active {
+  transform: translate(-50%, 120%) scale(0.97);
+}
+
 
     /* Меню справа сверху */
     #menu-panel {
@@ -261,17 +268,17 @@
       display: flex;
     }
     .menu-item {
-      width: 180px;
-      height: 48px;
-      padding: 0;
-      border-radius: 999px;
-      background-position: center;
-      background-repeat: no-repeat;
-      background-size: contain;
-      box-shadow: none;
-      font-size: 0;
-      background-color: transparent;
-    }
+  width: 180px;
+  height: 48px;
+  padding: 0;
+  border-radius: 999px;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%; /* вместо contain */
+  box-shadow: none;
+  font-size: 0;
+  background-color: transparent;
+}
     #menu-deposit {
       background-image: url('assets/btn_deposit.png');
     }
