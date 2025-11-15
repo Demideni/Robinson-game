@@ -36,7 +36,6 @@
       gap: 10px;
       pointer-events: auto;
     }
-    /* Логотип */
     #logo {
       width: 220px;
       height: 55px;
@@ -73,7 +72,6 @@
       flex-shrink: 0;
     }
 
-    /* Кнопка меню */
     #menu-btn {
       width: 60px;
       height: 60px;
@@ -107,7 +105,7 @@
       display: block;
     }
 
-    /* Заставка — без кнопки, авто-затухание */
+    /* Заставка */
     #splash {
       position: fixed;
       inset: 0;
@@ -151,14 +149,14 @@
       opacity: 0.7;
     }
 
-    /* Нижнее табло — прозрачнее */
+    /* Нижнее табло — полупрозрачное */
     #bottom-ui {
       position: absolute;
       left: 0;
       right: 0;
       bottom: 0;
       min-height: 120px;
-      background: rgba(0, 0, 0, 0.6); /* было 0.85 */
+      background: rgba(0, 0, 0, 0.6);
       display: flex;
       align-items: center;
       justify-content: space-around;
@@ -192,7 +190,7 @@
       cursor: pointer;
     }
 
-    /* Кнопка Play внизу */
+    /* Кнопка Play */
     #start-round-btn {
       width: 128px;
       height: 128px;
@@ -209,7 +207,7 @@
       filter: grayscale(1);
     }
 
-    /* Меню справа сверху */
+    /* Меню */
     #menu-panel {
       position: absolute;
       top: 52px;
@@ -249,7 +247,7 @@
   </style>
 </head>
 <body>
-  <!-- Заставка (4 секунды, потом исчезает) -->
+  <!-- Заставка (4 секунды) -->
   <div id="splash">
     <div id="splash-inner">
       <div id="splash-logo"><span>🏝️</span>РОБИНЗОН</div>
@@ -308,12 +306,6 @@
     <canvas id="game"></canvas>
   </div>
 
-  <!-- Звуки -->
-  <audio id="splash-sound" src="assets/splash.mp3" preload="auto"></audio>
-  <audio id="win-sound" src="assets/win.mp3" preload="auto"></audio>
-  <audio id="bonus-sound" src="assets/bonus_hit.mp3" preload="auto"></audio>
-  <audio id="bird-sound" src="assets/bird_hit.mp3" preload="auto"></audio>
-
   <script>
     const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
@@ -335,12 +327,7 @@
     const menuDepositBtn = document.getElementById("menu-deposit");
     const menuWithdrawBtn = document.getElementById("menu-withdraw");
 
-    const splashSound = document.getElementById("splash-sound");
-    const winSound = document.getElementById("win-sound");
-    const bonusSound = document.getElementById("bonus-sound");
-    const birdSound = document.getElementById("bird-sound");
-
-    // Авто-скрытие заставки через 4 секунды
+    // авто-скрытие заставки
     setTimeout(() => {
       if (splash && !splash.classList.contains("hidden")) {
         splash.classList.add("hidden");
@@ -393,6 +380,106 @@
       initProfile();
     })();
 
+    // --------- ЛЁГКИЕ ЗВУКИ НА WEB AUDIO ---------
+    let audioCtx = null;
+
+    function getAudioCtx() {
+      if (!audioCtx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return null;
+        audioCtx = new AC();
+      }
+      if (audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    function playTone(freq = 440, duration = 0.2, type = "sine", volume = 0.4) {
+      const ctxA = getAudioCtx();
+      if (!ctxA) return;
+      const osc = ctxA.createOscillator();
+      const gain = ctxA.createGain();
+      osc.type = type;
+      osc.frequency.value = freq;
+      gain.gain.value = volume;
+      osc.connect(gain);
+      gain.connect(ctxA.destination);
+
+      const now = ctxA.currentTime;
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(volume, now + 0.01);
+      gain.gain.linearRampToValueAtTime(0.0001, now + duration);
+
+      osc.start(now);
+      osc.stop(now + duration + 0.02);
+    }
+
+    function playChirp(freqStart, freqEnd, duration, volume = 0.5) {
+      const ctxA = getAudioCtx();
+      if (!ctxA) return;
+      const osc = ctxA.createOscillator();
+      const gain = ctxA.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freqStart, ctxA.currentTime);
+      osc.frequency.linearRampToValueAtTime(freqEnd, ctxA.currentTime + duration);
+      gain.gain.value = volume;
+      osc.connect(gain);
+      gain.connect(ctxA.destination);
+
+      const now = ctxA.currentTime;
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(volume, now + 0.01);
+      gain.gain.linearRampToValueAtTime(0.0001, now + duration);
+
+      osc.start(now);
+      osc.stop(now + duration + 0.02);
+    }
+
+    function playNoiseBurst(duration = 0.25, volume = 0.35) {
+      const ctxA = getAudioCtx();
+      if (!ctxA) return;
+      const bufferSize = Math.floor(ctxA.sampleRate * duration);
+      const buffer = ctxA.createBuffer(1, bufferSize, ctxA.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * 0.9;
+      }
+      const source = ctxA.createBufferSource();
+      const gain = ctxA.createGain();
+      source.buffer = buffer;
+      source.connect(gain);
+      gain.connect(ctxA.destination);
+
+      const now = ctxA.currentTime;
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(volume, now + 0.02);
+      gain.gain.linearRampToValueAtTime(0.0001, now + duration);
+
+      source.start(now);
+      source.stop(now + duration + 0.05);
+    }
+
+    function playWinSound() {
+      // небольшой аккорд из трёх нот
+      playTone(880, 0.18, "triangle", 0.4);
+      setTimeout(() => playTone(1175, 0.2, "triangle", 0.45), 120);
+      setTimeout(() => playTone(1320, 0.25, "triangle", 0.4), 220);
+    }
+
+    function playBonusSound() {
+      playChirp(700, 1100, 0.18, 0.5);
+    }
+
+    function playBirdSound() {
+      playChirp(400, 200, 0.15, 0.45);
+    }
+
+    function playSplashSound() {
+      playNoiseBurst(0.3, 0.35);
+    }
+    // ----------------------------------------------
+
     let state = "idle"; // idle | flying | won | lost
     let robinson;
     let objects;
@@ -429,7 +516,7 @@
     let bonusParticles = [];
     let shakeTime = 0;
 
-    // Смещение мира вверх на ~10% высоты экрана
+    // сдвиг сцены вверх
     const VIEW_OFFSET_REL = 0.10;
 
     // RTP
@@ -458,7 +545,6 @@
     }
 
     function updateHistoryUI() {
-      // история не отображается
       return;
     }
 
@@ -532,8 +618,7 @@
 
     document.addEventListener("click", (e) => {
       if (!menuPanel.contains(e.target) && e.target !== menuBtn) {
-        // можно включить автозакрытие:
-        // menuPanel.classList.remove("open");
+        // можно включить автозакрытие: menuPanel.classList.remove("open");
       }
     });
 
@@ -580,6 +665,9 @@
         return;
       }
 
+      // активируем аудиоконтекст по первому клику
+      getAudioCtx();
+
       totalBet += baseBet;
       userBalance -= baseBet;
       updateBalanceUI();
@@ -588,18 +676,6 @@
       state = "flying";
       statusEl.textContent = "Робинзон в полёте...";
       startBtn.disabled = true;
-
-      const unlockSound = (audio) => {
-        if (!audio) return;
-        audio.play().then(() => {
-          audio.pause();
-          audio.currentTime = 0;
-        }).catch(() => {});
-      };
-      unlockSound(splashSound);
-      unlockSound(winSound);
-      unlockSound(bonusSound);
-      unlockSound(birdSound);
     }
 
     startBtn.addEventListener("click", () => {
@@ -789,7 +865,6 @@
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
       const waterY = h * WATER_LINE_REL;
-      const viewOffsetY = -h * VIEW_OFFSET_REL;
 
       for (const p of splashParticles) {
         p.x += p.vx * dt;
@@ -856,10 +931,7 @@
         finishRound("lost");
         gameOverAnimTime = 0;
 
-        if (splashSound) {
-          splashSound.currentTime = 0;
-          splashSound.play().catch(() => {});
-        }
+        playSplashSound();
         vibrate(200);
         return;
       }
@@ -906,10 +978,7 @@
           winAnimTime = 0;
           finishRound("won");
 
-          if (winSound) {
-            winSound.currentTime = 0;
-            winSound.play().catch(() => {});
-          }
+          playWinSound();
           vibrate([80, 60, 80]);
           break;
         }
@@ -922,10 +991,7 @@
           robinson.vy += 50;
           o._dead = true;
 
-          if (birdSound) {
-            birdSound.currentTime = 0;
-            birdSound.play().catch(() => {});
-          }
+          playBirdSound();
           shakeTime = 0.25;
         }
 
@@ -940,10 +1006,7 @@
           addBonusParticles(o.x, o.y);
           o._dead = true;
 
-          if (bonusSound) {
-            bonusSound.currentTime = 0;
-            bonusSound.play().catch(() => {});
-          }
+          playBonusSound();
         }
       }
 
