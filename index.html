@@ -66,13 +66,14 @@
       padding: 0 2px;
     }
     #stats {
-      display: flex;
+      display: none; /* скрыли строку с множителем и балансом */
       justify-content: space-between;
       font-size: 14px;
       text-shadow: 0 1px 3px rgba(0,0,0,.7);
       padding: 0 2px;
     }
     #status-text {
+      display: none; /* скрыли строку статуса */
       font-weight: 600;
     }
     #balance-box {
@@ -323,7 +324,8 @@
       x20: "assets/bonus_x20.png",
       x50: "assets/bonus_x50.png",
       x100: "assets/bonus_x100.png",
-      gameover: "assets/game_over.png"
+      gameover: "assets/game_over.png",
+      win: "assets/win.png"        // твоя картинка "Ты победил!"
     };
 
     let allLoaded = false;
@@ -360,7 +362,6 @@
 
     let bonusPulse = 0;
     let robinsonAnimTime = 0;
-    let shoutVisible = 0;
     let cameraY = 0;
     let cameraLockY = null;
 
@@ -368,8 +369,9 @@
     let hasSplashed = false;
     let heroVisible = true;
 
-    // анимация гейм-овера
+    // анимация гейм-овера / победы
     let gameOverAnimTime = 0;
+    let winAnimTime = 0;
 
     // частицы для бонусов
     let bonusParticles = [];
@@ -396,10 +398,10 @@
       lastTs = performance.now();
       bonusPulse = 0;
       robinsonAnimTime = 0;
-      shoutVisible = 0;
       cameraY = 0;
       cameraLockY = null;
       gameOverAnimTime = 0;
+      winAnimTime = 0;
       multiplierEl.textContent = "1.00x";
 
       retryBtn.style.display = "none";
@@ -468,7 +470,7 @@
       statusEl.textContent = "Робинзон в полёте...";
       startBtn.disabled = true;
 
-      // разблокируем звук (iOS требовательный)
+      // разблокируем звук на iOS
       if (splashSound) {
         splashSound.play().then(() => {
           splashSound.pause();
@@ -672,19 +674,10 @@
       }
       bonusParticles = bonusParticles.filter(p => p.life < p.maxLife);
 
-      if (state === "flying") {
-        if (shoutVisible > 0) {
-          shoutVisible -= dt;
-        } else if (Math.random() < 0.8 * dt) {
-          shoutVisible = 0.35;
-        }
-      } else {
-        shoutVisible = 0;
-      }
-
       if (state === "idle" || state === "won") {
         cameraY = -(robinson.y - h * 0.55) * 0.1;
         cameraLockY = null;
+        if (state === "won") winAnimTime += dt;
         return;
       }
 
@@ -721,7 +714,6 @@
         retryBtn.style.display = "block";
         gameOverAnimTime = 0;
 
-        // звук + вибрация
         if (splashSound) {
           splashSound.currentTime = 0;
           splashSound.play().catch(() => {});
@@ -759,10 +751,12 @@
         if (!isColliding(heroBox, box)) continue;
 
         if (o.type === "island") {
+          // победа – остров НЕ удаляем
           state = "won";
           statusEl.textContent = "Победа! Робинзон приземлился на остров";
           startBtn.disabled = false;
-          o._dead = true;
+          retryBtn.style.display = "block";
+          winAnimTime = 0;
           finishRound(true);
           break;
         }
@@ -891,10 +885,8 @@
       if (!img) return;
 
       const pulse = bonusPulse > 0 ? (bonusPulse / 0.25) : 0;
-
       const tilt = Math.sin(robinsonAnimTime * 6) * 0.18;
       const bobY = Math.sin(robinsonAnimTime * 3) * 4;
-
       const scale = 1 + 0.25 * pulse;
 
       ctx.save();
@@ -911,52 +903,6 @@
       );
 
       ctx.restore();
-
-      if (shoutVisible > 0) {
-        const alpha = Math.min(1, shoutVisible / 0.15);
-        const px = robinson.x;
-        const py = robinson.y + cameraY - robinson.height * 0.7;
-
-        ctx.save();
-        ctx.globalAlpha = alpha;
-        ctx.fillStyle = "rgba(255,255,255,0.9)";
-        ctx.strokeStyle = "rgba(0,0,0,0.6)";
-        ctx.lineWidth = 2;
-
-        const w = 48;
-        const h = 24;
-        const r = 8;
-
-        ctx.beginPath();
-        ctx.moveTo(px - w/2 + r, py - h/2);
-        ctx.lineTo(px + w/2 - r, py - h/2);
-        ctx.quadraticCurveTo(px + w/2, py - h/2, px + w/2, py - h/2 + r);
-        ctx.lineTo(px + w/2, py + h/2 - r);
-        ctx.quadraticCurveTo(px + w/2, py + h/2, px + w/2 - r, py + h/2);
-        ctx.lineTo(px - w/2 + r, py + h/2);
-        ctx.quadraticCurveTo(px - w/2, py + h/2, px - w/2, py + h/2 - r);
-        ctx.lineTo(px - w/2, py - h/2 + r);
-        ctx.quadraticCurveTo(px - w/2, py - h/2, px - w/2 + r, py - h/2);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.moveTo(px - 4, py + h/2);
-        ctx.lineTo(px - 12, py + h/2 + 10);
-        ctx.lineTo(px, py + h/2);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.fillStyle = "#000";
-        ctx.font = "bold 12px system-ui";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText("А-А-А!", px - 1, py);
-
-        ctx.restore();
-      }
     }
 
     function drawWinAboveHero() {
@@ -1019,19 +965,18 @@
       }
     }
 
-    // PNG "Робинзон упал в воду" + затемнение фона с анимацией
+    // PNG проигрыш
     function drawGameOverOverlay() {
       if (state !== "lost") return;
 
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
 
-      const t = Math.min(gameOverAnimTime / 0.5, 1); // 0–1 за 0.5 сек
-      const ease = 1 - Math.pow(1 - t, 3);           // easing
+      const t = Math.min(gameOverAnimTime / 0.5, 1);
+      const ease = 1 - Math.pow(1 - t, 3);
 
       ctx.save();
 
-      // затемнение
       ctx.globalAlpha = 0.65 * ease;
       ctx.fillStyle = "rgba(0, 0, 0, 1)";
       ctx.fillRect(0, 0, w, h);
@@ -1043,7 +988,43 @@
         const maxW = w * 0.75;
         const maxH = h * 0.5;
         const baseScale = Math.min(maxW / img.width, maxH / img.height);
-        const scale = baseScale * (0.9 + 0.1 * ease); // лёгкий zoom-in
+        const scale = baseScale * (0.9 + 0.1 * ease);
+
+        const iw = img.width * scale;
+        const ih = img.height * scale;
+        const x = w / 2 - iw / 2;
+        const y = h / 2 - ih / 2;
+
+        ctx.drawImage(img, x, y, iw, ih);
+      }
+
+      ctx.restore();
+    }
+
+    // PNG победы "Ты победил!"
+    function drawWinOverlay() {
+      if (state !== "won") return;
+
+      const w = canvas.width / window.devicePixelRatio;
+      const h = canvas.height / window.devicePixelRatio;
+
+      const t = Math.min(winAnimTime / 0.5, 1);
+      const ease = 1 - Math.pow(1 - t, 3);
+
+      ctx.save();
+
+      ctx.globalAlpha = 0.55 * ease;
+      ctx.fillStyle = "rgba(0, 0, 0, 1)";
+      ctx.fillRect(0, 0, w, h);
+
+      const img = assets.win;
+      ctx.globalAlpha = ease;
+
+      if (img) {
+        const maxW = w * 0.75;
+        const maxH = h * 0.5;
+        const baseScale = Math.min(maxW / img.width, maxH / img.height);
+        const scale = baseScale * (0.9 + 0.12 * ease);
 
         const iw = img.width * scale;
         const ih = img.height * scale;
@@ -1052,18 +1033,16 @@
 
         ctx.drawImage(img, x, y, iw, ih);
       } else {
-        const text1 = "Робинзон упал в воду.";
-        const text2 = "Добавь assets/game_over.png";
-        ctx.font = "bold 20px system-ui";
+        // запасной вариант если PNG ещё нет
+        const text1 = "Ты победил!";
+        ctx.font = "bold 24px system-ui";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.strokeStyle = "rgba(0,0,0,0.8)";
         ctx.lineWidth = 4;
-        ctx.strokeText(text1, w / 2, h / 2 - 8);
-        ctx.strokeText(text2, w / 2, h / 2 + 20);
+        ctx.strokeText(text1, w / 2, h / 2);
         ctx.fillStyle = "#ffffff";
-        ctx.fillText(text1, w / 2, h / 2 - 8);
-        ctx.fillText(text2, w / 2, h / 2 + 20);
+        ctx.fillText(text1, w / 2, h / 2);
       }
 
       ctx.restore();
@@ -1088,6 +1067,7 @@
       drawBonusParticles();
       drawSplash();
       drawGameOverOverlay();
+      drawWinOverlay();
 
       requestAnimationFrame(render);
     }
