@@ -36,10 +36,10 @@
       gap: 10px;
       pointer-events: auto;
     }
-    /* Логотип КРУПНЕЕ (2.5x) */
+    /* Логотип, уменьшенный чтобы влезать */
     #logo {
-      width: 325px;  /* было 130 */
-      height: 80px;  /* было 32 */
+      width: 220px;
+      height: 55px;
       background: url('assets/logo_robinson.png') no-repeat left center / contain;
       text-indent: -9999px;
       overflow: hidden;
@@ -73,10 +73,10 @@
       flex-shrink: 0;
     }
 
-    /* Кнопка меню КРУПНЕЕ (2.5x) */
+    /* Кнопка меню – чуть меньше, но все ещё крупная */
     #menu-btn {
-      width: 80px;   /* было 32 */
-      height: 80px;  /* было 32 */
+      width: 60px;
+      height: 60px;
       padding: 0;
       border-radius: 50%;
       background: url('assets/btn_menu.png') center/contain no-repeat;
@@ -149,26 +149,26 @@
       font-size: 12px;
       opacity: 0.7;
     }
-    /* Кнопка начать игру КРУПНЕЕ (2.5x) */
+    /* Кнопка начать игру – уменьшена */
     #splash-start-btn {
       margin: 8px auto 0;
       padding: 0;
-      width: 550px;    /* было 220 */
-      height: 150px;   /* было 60 */
-      max-width: 100%; /* чтобы не вылезала за экран */
+      width: 360px;
+      height: 110px;
+      max-width: 100%;
       background: url('assets/btn_splash_start.png') center/contain no-repeat;
       border-radius: 0;
       box-shadow: none;
       font-size: 0;
     }
 
-    /* Нижнее табло — увеличил высоту, чтобы влезла огромная Play */
+    /* Нижнее табло – чуть ниже и выше, чтобы play помещалась */
     #bottom-ui {
       position: absolute;
       left: 0;
       right: 0;
       bottom: 0;
-      min-height: 140px;  /* было 80 */
+      min-height: 120px;
       background: rgba(0, 0, 0, 0.85);
       display: flex;
       align-items: center;
@@ -203,10 +203,10 @@
       cursor: pointer;
     }
 
-    /* Кнопка Play КРУПНЕЕ (2x) */
+    /* Кнопка Play – на 30% меньше от прошлой (112x112) */
     #start-round-btn {
-      width: 160px;   /* было 80 */
-      height: 160px;  /* было 80 */
+      width: 112px;
+      height: 112px;
       padding: 0;
       border-radius: 50%;
       background: url('assets/btn_play.png') center/contain no-repeat;
@@ -219,16 +219,16 @@
       filter: grayscale(1);
     }
 
-    /* Кнопка "Играть снова" КРУПНЕЕ (3x) */
+    /* Кнопка "Играть снова" – уменьшена */
     #retry-btn {
       position: absolute;
       left: 50%;
       top: 50%;
       transform: translate(-50%, 120%);
       padding: 0;
-      width: 600px;    /* было 200 */
-      height: 180px;   /* было 60 */
-      max-width: 90%;  /* чтобы влезала на экран */
+      width: 360px;
+      height: 120px;
+      max-width: 90%;
       border-radius: 0;
       font-size: 0;
       background: url('assets/btn_retry.png') center/contain no-repeat;
@@ -561,7 +561,7 @@
 
     document.addEventListener("click", (e) => {
       if (!menuPanel.contains(e.target) && e.target !== menuBtn) {
-        // если захочешь автозакрытие, раскомментируй
+        // можно включить автозакрытие:
         // menuPanel.classList.remove("open");
       }
     });
