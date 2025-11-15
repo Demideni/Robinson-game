@@ -321,7 +321,10 @@
     const ISLAND_BASE_PROB = 0.012;
     const BIRD_PROB   = 0.012;
     const BONUS_PROB  = 0.1;
-    const WATER_LINE_REL = 0.94;
+
+    // Уровень островов / воды (в мировых координатах, как доля высоты)
+    const WATER_LINE_REL = 0.93;
+
     const GRAVITY_BASE = 75;
     let gravity = GRAVITY_BASE;
 
@@ -333,6 +336,7 @@
 
     let splashParticles = [];
     let hasSplashed = false;
+    let heroVisible = true;
 
     function resetRound() {
       const w = canvas.width / window.devicePixelRatio;
@@ -350,6 +354,7 @@
       objects = [];
       splashParticles = [];
       hasSplashed = false;
+      heroVisible = true;
       time = 0;
       multiplier = 1;
       lastTs = performance.now();
@@ -458,7 +463,7 @@
 
       const width = 260;
       const height = 80;
-      const y = h * 0.93;
+      const y = h * 0.93; // чуть ниже линии воды, сам остров
 
       const x = w + width * 0.6;
       const last = getLastOfType("island");
@@ -553,7 +558,7 @@
     function createSplash(x, waterY) {
       const count = 22;
       for (let i = 0; i < count; i++) {
-        const angle = Math.random() * Math.PI - Math.PI / 2;
+        const angle = Math.random() * Math.PI - Math.PI / 2; // вверх
         const speed = 180 + Math.random() * 140;
         splashParticles.push({
           x,
@@ -574,7 +579,7 @@
 
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
-      const waterY = h * WATER_LINE_REL;
+      const waterY = h * WATER_LINE_REL; // мировая линия воды
 
       // обновляем частицы всплеска
       for (const p of splashParticles) {
@@ -605,8 +610,7 @@
         if (cameraLockY === null) {
           cameraLockY = cameraY;
         }
-        robinson.vy += gravity * dt;
-        robinson.y += robinson.vy * dt;
+        // Робинзон уже "утонул", просто не двигаем камеру
         cameraY = cameraLockY;
         return;
       }
@@ -621,7 +625,7 @@
         if (robinson.vy < 0) robinson.vy = 0;
       }
 
-      // касание воды
+      // касание "воды" (область ниже островов)
       if (robinson.y + robinson.height / 2 >= waterY) {
         state = "lost";
         statusEl.textContent = "Робинзон упал в воду";
@@ -630,6 +634,7 @@
           createSplash(robinson.x, waterY);
           hasSplashed = true;
         }
+        heroVisible = false; // Робинзон пропадает
         finishRound(false);
         return;
       }
@@ -714,12 +719,14 @@
       }
     }
 
-    function drawWater() {
+    // Всё, что ниже линии островов — "море"
+    function drawWaterRegion() {
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
-      const screenY = h * WATER_LINE_REL; // фиксированная линия воды на экране
+      const worldWaterY = h * WATER_LINE_REL;
+      const screenY = worldWaterY + cameraY;
 
-      const g = ctx.createLinearGradient(0, screenY, 0, h);
+      const g = ctx.createLinearGradient(0, screenY, 0, screenY + 120);
       g.addColorStop(0, "rgba(0, 110, 200, 0.95)");
       g.addColorStop(1, "rgba(0, 40, 90, 1)");
 
@@ -745,6 +752,7 @@
     }
 
     function drawHero() {
+      if (!heroVisible) return;
       const img = assets.rob;
       if (!img) return;
 
@@ -818,6 +826,7 @@
     }
 
     function drawMultiplierAboveHero() {
+      if (!heroVisible) return;
       const px = robinson.x;
       const py = robinson.y + cameraY - robinson.height * 0.6;
 
@@ -886,7 +895,7 @@
       ctx.clearRect(0, 0, w, h);
 
       drawBackground();
-      drawWater();
+      drawWaterRegion();
       drawObjects();
       drawHero();
       drawMultiplierAboveHero();
