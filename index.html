@@ -213,28 +213,6 @@
     #retry-btn:active {
       transform: translate(-50%, 120%) scale(0.97);
     }
-
-    /* Панель истории */
-    #history-panel {
-      position: absolute;
-      right: 8px;
-      top: 70px;
-      background: rgba(0,0,0,0.55);
-      border-radius: 12px;
-      padding: 6px 8px;
-      font-size: 11px;
-      max-width: 170px;
-      max-height: 120px;
-      overflow: hidden;
-      z-index: 1500;
-      pointer-events: none;
-    }
-    #history-panel div {
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      overflow: hidden;
-      opacity: 0.9;
-    }
   </style>
 </head>
 <body>
@@ -289,9 +267,6 @@
     </div>
   </div>
 
-  <!-- История -->
-  <div id="history-panel">История пуста</div>
-
   <button id="retry-btn">Играть снова</button>
 
   <div id="canvas-container">
@@ -301,8 +276,6 @@
   <!-- Звуки -->
   <audio id="splash-sound" src="assets/splash.mp3" preload="auto"></audio>
   <audio id="win-sound" src="assets/win.mp3" preload="auto"></audio>
-  <audio id="bonus-sound" src="assets/bonus_hit.mp3" preload="auto"></audio>
-  <audio id="bird-sound" src="assets/bird_hit.mp3" preload="auto"></audio>
   <audio id="lose-sound" src="assets/lose.mp3" preload="auto"></audio>
 
   <script>
@@ -320,15 +293,12 @@
 
     const autoToggleEl = document.getElementById("auto-toggle");
     const autoStatusEl = document.getElementById("auto-status");
-    const historyPanel = document.getElementById("history-panel");
 
     const splash = document.getElementById("splash");
     const splashStartBtn = document.getElementById("splash-start-btn");
 
     const splashSound = document.getElementById("splash-sound");
     const winSound = document.getElementById("win-sound");
-    const bonusSound = document.getElementById("bonus-sound");
-    const birdSound = document.getElementById("bird-sound");
     const loseSound = document.getElementById("lose-sound");
 
     function resizeCanvas() {
@@ -412,7 +382,7 @@
 
     let bonusParticles = [];
 
-    // RTP и история
+    // RTP и история (история считается, но не показывается на экране)
     let totalBet = 0;
     let totalPayout = 0;
     const TARGET_RTP = 0.96;
@@ -438,17 +408,8 @@
     }
 
     function updateHistoryUI() {
-      if (!historyPanel) return;
-      if (!roundHistory.length) {
-        historyPanel.textContent = "История пуста";
-        return;
-      }
-      const lines = roundHistory.slice(0, 6).map(r => {
-        const tag = r.result === "won" ? "W" : "L";
-        const color = r.result === "won" ? "#6eff9a" : "#ff8585";
-        return `<div style="color:${color}">${tag} • bet ${r.bet.toFixed(2)} • x${r.multiplier.toFixed(2)} • ${r.win.toFixed(2)}</div>`;
-      });
-      historyPanel.innerHTML = lines.join("");
+      // Панели истории нет — функция оставлена только для логики
+      return;
     }
 
     function resetRound() {
@@ -553,7 +514,7 @@
       statusEl.textContent = "Робинзон в полёте...";
       startBtn.disabled = true;
 
-      // разблокируем и "пробуждаем" звуки (важно для iOS)
+      // разблокируем звуки (важно для iOS)
       const unlockSound = (audio) => {
         if (!audio) return;
         audio.play().then(() => {
@@ -563,8 +524,6 @@
       };
       unlockSound(splashSound);
       unlockSound(winSound);
-      unlockSound(bonusSound);
-      unlockSound(birdSound);
       unlockSound(loseSound);
     }
 
@@ -832,12 +791,10 @@
           splashSound.currentTime = 0;
           splashSound.play().catch(() => {});
         }
-        // 🎵 звук проигрыша
         if (loseSound) {
           loseSound.currentTime = 0;
           loseSound.play().catch(() => {});
         }
-
         vibrate(200);
         return;
       }
@@ -902,10 +859,7 @@
           robinson.vy += 50;
           o._dead = true;
 
-          if (birdSound) {
-            birdSound.currentTime = 0;
-            birdSound.play().catch(() => {});
-          }
+          // звука птицы здесь больше нет — остаётся твоя реализация
         }
 
         if (o.type === "bonus") {
@@ -919,10 +873,7 @@
           addBonusParticles(o.x, o.y);
           o._dead = true;
 
-          if (bonusSound) {
-            bonusSound.currentTime = 0;
-            bonusSound.play().catch(() => {});
-          }
+          // звука бонуса здесь больше нет — остаётся твоя реализация
         }
       }
 
