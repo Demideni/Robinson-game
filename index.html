@@ -88,42 +88,6 @@
       display: block;
     }
 
-    /* Нижняя панель со ставкой и кнопкой Старт */
-    #bottom-bar {
-      position: absolute;
-      left: 0;
-      right: 0;
-      top: 75%;
-      transform: translateY(-50%);
-      padding: 6px 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      pointer-events: auto;
-      z-index: 20;
-    }
-
-    #bottom-bar span {
-      font-size: 14px;
-    }
-
-    #bet-input {
-      width: 80px;
-      padding: 8px 8px;
-      border-radius: 8px;
-      border: none;
-      font-size: 16px;
-      text-align: right;
-    }
-
-    #start-btn {
-      padding: 12px 32px;
-      font-size: 18px;
-      border-radius: 999px;
-      min-width: 140px;
-    }
-
     /* Мобильная заставка */
     #splash {
       position: fixed;
@@ -171,6 +135,60 @@
       font-size: 16px;
       width: 100%;
     }
+
+    /* Нижнее табло как в Aviamasters */
+    #bottom-ui {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: env(safe-area-inset-bottom, 0);
+      height: 96px;
+      background: rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(12px);
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      padding: 0 16px;
+      z-index: 900;
+    }
+    .bottom-item {
+      font-size: 16px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.7);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .bottom-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      opacity: 0.7;
+      letter-spacing: .06em;
+    }
+    .bottom-value {
+      font-size: 18px;
+      font-weight: 700;
+    }
+    #bottom-bet {
+      cursor: pointer;
+    }
+    #start-round-btn {
+      background: #ffffff;
+      border-radius: 50%;
+      width: 72px;
+      height: 72px;
+      font-size: 30px;
+      font-weight: 800;
+      color: #000;
+      border: none;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #start-round-btn:disabled {
+      opacity: 0.4;
+      box-shadow: none;
+    }
   </style>
 </head>
 <body>
@@ -183,7 +201,7 @@
       </div>
       <button id="splash-start-btn">Начать игру</button>
       <div id="splash-hint">
-        Совет: выбери ставку, а затем нажми СТАРТ внизу экрана.
+        Совет: выбери ставку (внизу справа), а затем жми ▶.
       </div>
     </div>
   </div>
@@ -202,14 +220,22 @@
       <div>Множитель: <span id="multiplier">1.00x</span></div>
       <div id="balance-box">Баланс: <span id="balance">0.00</span> 🪙</div>
     </div>
-    <div id="status-text">Сделай ставку и нажми СТАРТ</div>
+    <div id="status-text">Сделай ставку и нажми ▶</div>
   </div>
 
-  <!-- Нижний блок со ставкой и Старт -->
-  <div id="bottom-bar">
-    <span>Ставка:</span>
-    <input id="bet-input" type="number" min="0.1" step="0.1" value="1" />
-    <button id="start-btn">СТАРТ</button>
+  <!-- Нижнее табло -->
+  <div id="bottom-ui">
+    <div class="bottom-item" id="bottom-balance">
+      <div class="bottom-label">Balance</div>
+      <div class="bottom-value" id="balance-bottom">0.00</div>
+    </div>
+
+    <button id="start-round-btn">▶</button>
+
+    <div class="bottom-item" id="bottom-bet">
+      <div class="bottom-label">Bet</div>
+      <div class="bottom-value" id="bet-bottom">1.00</div>
+    </div>
   </div>
 
   <div id="canvas-container">
@@ -222,9 +248,10 @@
 
     const multiplierEl = document.getElementById("multiplier");
     const statusEl = document.getElementById("status-text");
-    const startBtn = document.getElementById("start-btn");
-    const betInput = document.getElementById("bet-input");
+    const startBtn = document.getElementById("start-round-btn");
     const balanceEl = document.getElementById("balance");
+    const balanceBottomEl = document.getElementById("balance-bottom");
+    const betBottomEl = document.getElementById("bet-bottom");
     const depositBtn = document.getElementById("deposit-btn");
 
     const splash = document.getElementById("splash");
@@ -296,6 +323,7 @@
     let bonusPulse = 0;
     let robinsonAnimTime = 0;
     let shoutVisible = 0; // время, когда виден пузырь "А-А-А!"
+    let cameraY = 0;
 
     function resetRound() {
       const w = canvas.width / window.devicePixelRatio;
@@ -334,15 +362,21 @@
           y: robinson.y + yOffset,
           w: bonusSize,
           h: bonusSize,
-          phase: Math.random() * Math.PI * 2, // фаза для движения
+          phase: Math.random() * Math.PI * 2,
         });
       });
     }
 
     function initProfile() {
       userBalance = 100;
-      balanceEl.textContent = userBalance.toFixed(2);
+      updateBalanceUI();
       statusEl.textContent = "Демо-режим: у тебя 100 монет";
+      betBottomEl.textContent = baseBet.toFixed(2);
+    }
+
+    function updateBalanceUI() {
+      balanceEl.textContent = userBalance.toFixed(2);
+      balanceBottomEl.textContent = userBalance.toFixed(2);
     }
 
     depositBtn.addEventListener("click", () => {
@@ -350,14 +384,21 @@
       const amount = parseFloat(amountStr || "0");
       if (!amount || amount <= 0) return;
       userBalance += amount;
-      balanceEl.textContent = userBalance.toFixed(2);
+      updateBalanceUI();
       statusEl.textContent = "Баланс пополнен";
+    });
+
+    // Изменение ставки по клику на правый блок
+    document.getElementById("bottom-bet").addEventListener("click", () => {
+      const valueStr = prompt("Введите ставку", baseBet.toFixed(2));
+      const val = parseFloat(valueStr || "");
+      if (!val || val <= 0) return;
+      baseBet = val;
+      betBottomEl.textContent = baseBet.toFixed(2);
     });
 
     function startRound() {
       if (!allLoaded) return;
-      baseBet = Math.max(parseFloat(betInput.value) || 0, 0.1);
-      betInput.value = baseBet.toFixed(2);
 
       if (userBalance < baseBet) {
         statusEl.textContent = "Недостаточно монет. Пополни баланс.";
@@ -365,7 +406,7 @@
       }
 
       userBalance -= baseBet;
-      balanceEl.textContent = userBalance.toFixed(2);
+      updateBalanceUI();
 
       resetRound();
       state = "flying";
@@ -387,7 +428,7 @@
       if (win) {
         const winAmount = baseBet * multiplier;
         userBalance += winAmount;
-        balanceEl.textContent = userBalance.toFixed(2);
+        updateBalanceUI();
         statusEl.textContent += ` Выигрыш: ${winAmount.toFixed(2)}.`;
       }
     }
@@ -426,7 +467,7 @@
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
 
-      const size = 58; // птица меньше
+      const size = 58;
       const y = h * (0.35 + Math.random() * 0.35);
       const x = w + size * 0.8;
       const last = getLastOfType("bird");
@@ -440,7 +481,7 @@
         y,
         w: size,
         h: size,
-        phase: Math.random() * Math.PI * 2, // фаза для движения
+        phase: Math.random() * Math.PI * 2,
       });
     }
 
@@ -469,7 +510,7 @@
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
 
-      const size = 38; // бонусы +20% (32 -> 38)
+      const size = 38;
       const y = h * (0.4 + Math.random() * 0.4);
       const x = w + size * 0.6;
       const last = getLastOfType("bonus");
@@ -484,7 +525,7 @@
         y,
         w: size,
         h: size,
-        phase: Math.random() * Math.PI * 2, // фаза для движения
+        phase: Math.random() * Math.PI * 2,
       });
     }
 
@@ -498,33 +539,38 @@
     }
 
     function update(dt) {
-      if (state === "idle" || state === "won") return;
-
       time += dt;
       bonusPulse = Math.max(0, bonusPulse - dt);
       robinsonAnimTime += dt;
-
-      // крик
-      if (shoutVisible > 0) {
-        shoutVisible -= dt;
-      } else if (state === "flying" && Math.random() < 0.8 * dt) {
-        shoutVisible = 0.35;
-      }
 
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
       const waterY = h * WATER_LINE_REL;
 
-      // если уже проиграл — просто продолжаем падать ниже экрана
-      if (state === "lost") {
-        robinson.vy += gravity * dt;
-        robinson.y += robinson.vy * dt;
+      // крик
+      if (state === "flying") {
+        if (shoutVisible > 0) {
+          shoutVisible -= dt;
+        } else if (Math.random() < 0.8 * dt) {
+          shoutVisible = 0.35;
+        }
+      } else {
+        shoutVisible = 0;
+      }
+
+      if (state === "idle" || state === "won") {
+        cameraY = -(robinson.y - h * 0.55);
         return;
       }
 
-      // состояние полёта
-      if (state !== "flying") return;
+      if (state === "lost") {
+        robinson.vy += gravity * dt;
+        robinson.y += robinson.vy * dt;
+        cameraY = -(robinson.y - h * 0.55);
+        return;
+      }
 
+      // FLYING
       robinson.vy += gravity * dt;
       robinson.y += robinson.vy * dt;
 
@@ -534,12 +580,12 @@
         if (robinson.vy < 0) robinson.vy = 0;
       }
 
-      // проигрыш прямо у самого низа
       if (robinson.y + robinson.height / 2 >= waterY) {
         state = "lost";
         statusEl.textContent = "Робинзон упал в воду";
         startBtn.disabled = false;
         finishRound(false);
+        cameraY = -(robinson.y - h * 0.55);
         return;
       }
 
@@ -601,6 +647,8 @@
       }
 
       objects = objects.filter(o => o.x + o.w > -50 && !o._dead);
+
+      cameraY = -(robinson.y - h * 0.55);
     }
 
     function drawBackground() {
@@ -612,7 +660,7 @@
         const scale = h / bg.height;
         const imgW = bg.width * scale;
         for (let x = 0; x < w + imgW; x += imgW) {
-          ctx.drawImage(bg, x, 0, imgW, h);
+          ctx.drawImage(bg, x, cameraY * 0.15, imgW, h);
         }
       } else {
         ctx.fillStyle = "#4cc3ff";
@@ -632,7 +680,7 @@
       const scale = 1 + 0.25 * pulse;
 
       ctx.save();
-      ctx.translate(robinson.x, robinson.y + bobY);
+      ctx.translate(robinson.x, robinson.y + bobY + cameraY);
       ctx.rotate(tilt);
       ctx.scale(scale, scale);
 
@@ -648,8 +696,8 @@
 
       if (shoutVisible > 0) {
         const alpha = Math.min(1, shoutVisible / 0.15);
-        const px = robinson.x + robinson.width * 0.55;
-        const py = robinson.y - robinson.height * 0.7;
+        const px = robinson.x + cameraY * 0; // камера уже учтена
+        const py = robinson.y + cameraY - robinson.height * 0.7;
 
         ctx.save();
         ctx.globalAlpha = alpha;
@@ -693,6 +741,23 @@
       }
     }
 
+    function drawMultiplierAboveHero() {
+      const px = robinson.x;
+      const py = robinson.y + cameraY - robinson.height * 1.1;
+
+      ctx.save();
+      ctx.font = "bold 22px system-ui";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.strokeStyle = "rgba(0,0,0,0.7)";
+      ctx.lineWidth = 4;
+      const text = multiplier.toFixed(2) + "x";
+      ctx.strokeText(text, px, py);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(text, px, py);
+      ctx.restore();
+    }
+
     function drawObjects() {
       for (const o of objects) {
         let drawY = o.y;
@@ -707,7 +772,7 @@
           ctx.drawImage(
             assets.island,
             o.x - o.w / 2,
-            o.y - o.h / 2,
+            o.y - o.h / 2 + cameraY,
             o.w,
             o.h
           );
@@ -716,7 +781,7 @@
           ctx.drawImage(
             assets[o.kind],
             o.x - o.w / 2,
-            drawY - o.h / 2,
+            drawY - o.h / 2 + cameraY,
             o.w,
             o.h
           );
@@ -725,7 +790,7 @@
           ctx.drawImage(
             assets.bird,
             o.x - o.w / 2,
-            drawY - o.h / 2,
+            drawY - o.h / 2 + cameraY,
             o.w,
             o.h
           );
@@ -745,10 +810,9 @@
       ctx.clearRect(0, 0, w, h);
 
       drawBackground();
-      if (state !== "idle") {
-        drawObjects();
-        drawHero();
-      }
+      drawObjects();
+      drawHero();
+      drawMultiplierAboveHero();
 
       requestAnimationFrame(render);
     }
