@@ -320,7 +320,7 @@
     const OBJECT_SPEED = 380;
     const ISLAND_BASE_PROB = 0.012;
 
-    // теперь бонусы / птицы в соотношении примерно 50/50
+    // бонусы / птицы ~50/50
     const BIRD_PROB   = 0.06;
     const BONUS_PROB  = 0.06;
 
@@ -484,8 +484,7 @@
       const h = canvas.height / window.devicePixelRatio;
 
       const size = 58;
-      // выше, чем раньше: примерно 18–55% высоты
-      const y = h * (0.18 + Math.random() * 0.37);
+      const y = h * (0.18 + Math.random() * 0.37); // выше
       const x = w + size * 0.8;
       const last = getLastOfType("bird");
       const minGap = 180;
@@ -528,8 +527,7 @@
       const h = canvas.height / window.devicePixelRatio;
 
       const size = 38;
-      // бонусы тоже выше: 22–60% высоты
-      const y = h * (0.22 + Math.random() * 0.38);
+      const y = h * (0.22 + Math.random() * 0.38); // тоже выше
       const x = w + size * 0.6;
       const last = getLastOfType("bonus");
       const minGap = 220;
@@ -602,7 +600,7 @@
       }
 
       if (state === "idle" || state === "won") {
-        cameraY = -(robinson.y - h * 0.55) * 0.2; // камера отдалена (20%)
+        cameraY = -(robinson.y - h * 0.55) * 0.1; // 10%
         cameraLockY = null;
         return;
       }
@@ -698,7 +696,7 @@
 
       objects = objects.filter(o => o.x + o.w > -50 && !o._dead);
 
-      cameraY = -(robinson.y - h * 0.55) * 0.2; // мягкая камера 20%
+      cameraY = -(robinson.y - h * 0.55) * 0.1; // камера 10%
       cameraLockY = null;
     }
 
@@ -719,20 +717,48 @@
       }
     }
 
-    // всё ниже линии островов — море
+    // всё ниже линии островов — море с волнистой поверхностью
     function drawWaterRegion() {
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
       const worldWaterY = h * WATER_LINE_REL;
-      const screenY = worldWaterY + cameraY;
+      const baseY = worldWaterY + cameraY;
 
-      const g = ctx.createLinearGradient(0, screenY, 0, screenY + 120);
-      g.addColorStop(0, "rgba(0, 110, 200, 0.95)");
+      const waveAmp = 6;
+      const waveLen = 80;
+
+      // форма воды (волнистый верх)
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(0, baseY + Math.sin(time * 2) * 2);
+      for (let x = 0; x <= w; x += 20) {
+        const y = baseY + Math.sin((x / waveLen) + time * 2) * waveAmp;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(w, h);
+      ctx.lineTo(0, h);
+      ctx.closePath();
+
+      const g = ctx.createLinearGradient(0, baseY, 0, h);
+      g.addColorStop(0, "rgba(0, 130, 220, 0.95)");
+      g.addColorStop(0.4, "rgba(0, 90, 180, 0.98)");
       g.addColorStop(1, "rgba(0, 40, 90, 1)");
 
-      ctx.save();
       ctx.fillStyle = g;
-      ctx.fillRect(0, screenY, w, h - screenY);
+      ctx.fill();
+
+      // блики на волнах
+      ctx.globalAlpha = 0.4;
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+      ctx.beginPath();
+      for (let x = 0; x <= w; x += 16) {
+        const y = baseY + Math.sin((x / waveLen) + time * 2.5) * (waveAmp * 0.6);
+        ctx.moveTo(x - 4, y);
+        ctx.lineTo(x + 4, y);
+      }
+      ctx.stroke();
+
       ctx.restore();
     }
 
@@ -830,7 +856,6 @@
       const px = robinson.x;
       const py = robinson.y + cameraY - robinson.height * 0.6;
 
-      // потенциальный выигрыш в рублях
       const winNow = baseBet * multiplier;
       const text = winNow.toFixed(2) + " RUB";
 
@@ -886,6 +911,37 @@
       }
     }
 
+    function drawGameOverText() {
+      if (state !== "lost") return;
+
+      const w = canvas.width / window.devicePixelRatio;
+      const h = canvas.height / window.devicePixelRatio;
+
+      const text1 = "Робинзон упал в воду.";
+      const text2 = "Попробуй снова!";
+
+      ctx.save();
+      ctx.font = "bold 22px system-ui";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      // лёгкий полупрозрачный фон позади текста
+      ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
+      ctx.fillRect(w / 2 - 140, h / 2 - 45, 280, 90);
+
+      ctx.strokeStyle = "rgba(0,0,0,0.8)";
+      ctx.lineWidth = 4;
+
+      ctx.strokeText(text1, w / 2, h / 2 - 8);
+      ctx.strokeText(text2, w / 2, h / 2 + 20);
+
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(text1, w / 2, h / 2 - 8);
+      ctx.fillText(text2, w / 2, h / 2 + 20);
+
+      ctx.restore();
+    }
+
     function render() {
       const now = performance.now();
       const dt = (now - lastTs) / 1000;
@@ -903,6 +959,7 @@
       drawHero();
       drawWinAboveHero();
       drawSplash();
+      drawGameOverText();
 
       requestAnimationFrame(render);
     }
