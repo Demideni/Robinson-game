@@ -321,7 +321,7 @@
     const ISLAND_BASE_PROB = 0.012;
     const BIRD_PROB   = 0.012;
     const BONUS_PROB  = 0.1;
-    const WATER_LINE_REL = 0.94;   // уровень воды, почти совпадает с островом
+    const WATER_LINE_REL = 0.94;
     const GRAVITY_BASE = 75;
     let gravity = GRAVITY_BASE;
 
@@ -553,7 +553,7 @@
     function createSplash(x, waterY) {
       const count = 22;
       for (let i = 0; i < count; i++) {
-        const angle = Math.random() * Math.PI - Math.PI / 2; // вверх
+        const angle = Math.random() * Math.PI - Math.PI / 2;
         const speed = 180 + Math.random() * 140;
         splashParticles.push({
           x,
@@ -580,7 +580,7 @@
       for (const p of splashParticles) {
         p.x += p.vx * dt;
         p.y += p.vy * dt;
-        p.vy += 350 * dt; // гравитация
+        p.vy += 350 * dt;
         p.life += dt;
       }
       splashParticles = splashParticles.filter(p => p.life < p.maxLife);
@@ -596,7 +596,7 @@
       }
 
       if (state === "idle" || state === "won") {
-        cameraY = -(robinson.y - h * 0.55);
+        cameraY = -(robinson.y - h * 0.55) * 0.7;
         cameraLockY = null;
         return;
       }
@@ -693,7 +693,7 @@
 
       objects = objects.filter(o => o.x + o.w > -50 && !o._dead);
 
-      cameraY = -(robinson.y - h * 0.55);
+      cameraY = -(robinson.y - h * 0.55) * 0.7;
       cameraLockY = null;
     }
 
@@ -717,16 +717,15 @@
     function drawWater() {
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
-      const waterY = h * WATER_LINE_REL;
-      const screenY = waterY + cameraY;
+      const screenY = h * WATER_LINE_REL; // фиксированная линия воды на экране
 
-      const g = ctx.createLinearGradient(0, screenY, 0, h + cameraY);
+      const g = ctx.createLinearGradient(0, screenY, 0, h);
       g.addColorStop(0, "rgba(0, 110, 200, 0.95)");
       g.addColorStop(1, "rgba(0, 40, 90, 1)");
 
       ctx.save();
       ctx.fillStyle = g;
-      ctx.fillRect(0, screenY, w, h - screenY - cameraY);
+      ctx.fillRect(0, screenY, w, h - screenY);
       ctx.restore();
     }
 
