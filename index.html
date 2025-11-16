@@ -71,11 +71,13 @@
     #splash-logo span{font-size:30px;margin-right:6px}
     #splash-subtitle{font-size:14px;opacity:.9}
     #splash-hint{font-size:12px;opacity:.7}
-    /* Нижнее табло */
+    /* Нижнее табло — СКРЫТО при старте */
     #bottom-ui{
       position:absolute;left:0;right:0;bottom:0;
-      min-height:120px;background:rgba(0,0,0,.6);
-      display:flex;align-items:center;justify-content:space-around;
+      min-height:120px;
+      background:rgba(0,0,0,.6);
+      display:none; /* было flex, теперь скрыто до конца заставки */
+      align-items:center;justify-content:space-around;
       padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px));
       z-index:2000;pointer-events:auto;
       backdrop-filter:blur(10px);
@@ -192,14 +194,22 @@
     const autoStatusEl=document.getElementById("auto-status");
 
     const splash=document.getElementById("splash");
+    const bottomUi=document.getElementById("bottom-ui");
 
     const menuBtn=document.getElementById("menu-btn");
     const menuPanel=document.getElementById("menu-panel");
     const menuDepositBtn=document.getElementById("menu-deposit");
     const menuWithdrawBtn=document.getElementById("menu-withdraw");
 
-    // скрываем заставку через 4 сек
-    setTimeout(()=>{if(splash && !splash.classList.contains("hidden")) splash.classList.add("hidden");},4000);
+    // скрываем заставку через 4 сек и показываем нижнее меню
+    setTimeout(()=>{
+      if(splash && !splash.classList.contains("hidden")){
+        splash.classList.add("hidden");
+      }
+      if(bottomUi){
+        bottomUi.style.display="flex";
+      }
+    },4000);
 
     function resizeCanvas(){
       const rect=canvas.getBoundingClientRect();
@@ -1013,7 +1023,11 @@
       requestAnimationFrame(render);
     }
 
-    lastTs=performance.now();
+    let objects=[],time=0,lastTs=performance.now();
+    let multiplier=1;
+    let bonusParticles=[];
+    let splashParticles=[];
+
     resetRound();
     requestAnimationFrame(render);
   </script>
