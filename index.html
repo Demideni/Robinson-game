@@ -52,26 +52,23 @@
     }
     #status-text{display:none;font-weight:600}
     #canvas-container{
-  position:absolute;
-  inset:0;
-}
-
-/* Лёгкое затемнение фона игры */
-#canvas-container::before{
-  content:"";
-  position:absolute;
-  inset:0;
-  background:rgba(0,0,0,0.25); /* можно играться с уровнем 0.2–0.4 */
-  pointer-events:none;
-  z-index:1;
-}
-
-canvas{
-  width:100%;
-  height:100%;
-  display:block;
-}
-
+      position:absolute;
+      inset:0;
+    }
+    /* Лёгкое затемнение фона игры */
+    #canvas-container::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:rgba(0,0,0,0.25); /* можно менять 0.2–0.35 для силы затемнения */
+      pointer-events:none;
+      z-index:1;
+    }
+    canvas{
+      width:100%;
+      height:100%;
+      display:block;
+    }
     /* Заставка */
     #splash{
       position:fixed;inset:0;
@@ -118,6 +115,8 @@ canvas{
       background:url('assets/btn_play.png') center no-repeat;
       background-size:100% 100%;
       box-shadow:0 4px 14px rgba(0,0,0,.65);font-size:0;
+      position:relative;
+      z-index:2; /* поверх затемнения */
     }
     #start-round-btn:disabled{
       opacity:.4;box-shadow:none;filter:grayscale(1);
@@ -350,7 +349,8 @@ canvas{
     let userBalance=100;
 
     const HERO_X_REL=0.25;
-    const OBJECT_SPEED=380;
+    // Скорость объектов увеличена на 30%
+    const OBJECT_SPEED = 494;
     const ISLAND_BASE_PROB=0.012;
 
     const BIRD_PROB=0.14;
