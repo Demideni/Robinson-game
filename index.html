@@ -60,7 +60,7 @@
       content:"";
       position:absolute;
       inset:0;
-      background:rgba(0,0,0,0.25); /* можно менять 0.2–0.35 для силы затемнения */
+      background:rgba(0,0,0,0.25);
       pointer-events:none;
       z-index:1;
     }
@@ -92,7 +92,7 @@
       position:absolute;left:0;right:0;bottom:0;
       min-height:120px;
       background:rgba(0,0,0,.6);
-      display:none; /* покажем после исчезновения заставки */
+      display:none;
       align-items:center;justify-content:space-around;
       padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px));
       z-index:2000;pointer-events:auto;
@@ -116,7 +116,7 @@
       background-size:100% 100%;
       box-shadow:0 4px 14px rgba(0,0,0,.65);font-size:0;
       position:relative;
-      z-index:2; /* поверх затемнения */
+      z-index:2;
     }
     #start-round-btn:disabled{
       opacity:.4;box-shadow:none;filter:grayscale(1);
@@ -145,6 +145,7 @@
   <!-- Заставка -->
   <div id="splash">
     <div id="splash-inner">
+      <div id="splash-logo"><span>🏝️</span></div>
       <div id="splash-subtitle">
         Лети к острову, собирай бонусы и умножай выигрыш.
       </div>
@@ -348,12 +349,12 @@
     let userBalance=100;
 
     const HERO_X_REL=0.25;
-    // Скорость объектов увеличена на 30%
-    const OBJECT_SPEED = 494;
+    const OBJECT_SPEED = 494; // +30% скорости
     const ISLAND_BASE_PROB=0.012;
 
-    const BIRD_PROB=0.14;
-    const BONUS_PROB=0.14;
+    // Увеличены вероятности появления птиц и бонусов (≈ +200%)
+    const BIRD_PROB  = 0.14 * 3;
+    const BONUS_PROB = 0.14 * 3;
 
     const WATER_LINE_REL=0.8;
     const GRAVITY_BASE=75;
@@ -451,8 +452,7 @@
     });
     document.addEventListener("click",e=>{
       if(!menuPanel.contains(e.target)&&e.target!==menuBtn){
-        // можно закрывать меню при клике вне
-        // menuPanel.classList.remove("open");
+        // оставляем открытым, если кликнули мимо
       }
     });
     menuDepositBtn.addEventListener("click",()=>{
@@ -494,7 +494,7 @@
         statusEl.textContent="Недостаточно монет. Пополни баланс.";
         return;
       }
-      getAudioCtx(); // активируем звук по первому клику
+      getAudioCtx();
       totalBet+=baseBet;
       userBalance-=baseBet;
       updateBalanceUI();
@@ -544,12 +544,12 @@
       const w=canvas.width/window.devicePixelRatio;
       const h=canvas.height/window.devicePixelRatio;
       const size=58;
-      const minY=h*0.10;
-      const maxY=h*0.72;
+      const minY=h*0.05;   // чуть выше
+      const maxY=h*0.78;   // почти до воды
       const y=minY+Math.random()*(maxY-minY);
       const x=w+size*0.8;
       const last=getLastOfType("bird");
-      const minGap=140;
+      const minGap=80; // птицы могут быть ближе
       if(last && last.x-x<minGap) return;
       objects.push({
         type:"bird",
@@ -585,12 +585,12 @@
       const w=canvas.width/window.devicePixelRatio;
       const h=canvas.height/window.devicePixelRatio;
       const size=38;
-      const minY=h*0.12;
-      const maxY=h*0.70;
+      const minY=h*0.08;
+      const maxY=h*0.75;
       const y=minY+Math.random()*(maxY-minY);
       const x=w+size*0.6;
       const last=getLastOfType("bonus");
-      const minGap=180;
+      const minGap=100; // бонусы тоже плотнее
       if(last && last.x-x<minGap) return;
       objects.push({
         type:"bonus",
