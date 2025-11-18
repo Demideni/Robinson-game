@@ -51,6 +51,7 @@
       text-shadow:0 1px 3px rgba(0,0,0,.7);padding:0 2px;
     }
     #status-text{display:none;font-weight:600}
+
     #canvas-container{
       position:absolute;
       inset:0;
@@ -69,6 +70,7 @@
       height:100%;
       display:block;
     }
+
     /* Заставка */
     #splash{
       position:fixed;inset:0;
@@ -87,6 +89,7 @@
     #splash-logo span{font-size:30px;margin-right:6px}
     #splash-subtitle{font-size:14px;opacity:.9}
     #splash-hint{font-size:12px;opacity:.7}
+
     /* Нижнее табло — скрыто при старте */
     #bottom-ui{
       position:absolute;left:0;right:0;bottom:0;
@@ -109,6 +112,7 @@
     }
     .bottom-value{font-size:18px;font-weight:700}
     #bottom-bet,#auto-toggle{cursor:pointer}
+
     /* Play */
     #start-round-btn{
       width:128px;height:128px;padding:0;border-radius:50%;
@@ -121,6 +125,7 @@
     #start-round-btn:disabled{
       opacity:.4;box-shadow:none;filter:grayscale(1);
     }
+
     /* Меню */
     #menu-panel{
       position:absolute;top:52px;right:10px;
@@ -352,9 +357,9 @@
     const OBJECT_SPEED = 494; // +30% скорости
     const ISLAND_BASE_PROB=0.012;
 
-    // Увеличены вероятности появления птиц и бонусов (≈ +200%)
-    const BIRD_PROB  = 0.14 * 3;
-    const BONUS_PROB = 0.14 * 3;
+    // Базовые вероятности (до RTP-коррекции)
+    const BIRD_BASE_PROB  = 0.14 * 3;
+    const BONUS_BASE_PROB = 0.14 * 3;
 
     const WATER_LINE_REL=0.8;
     const GRAVITY_BASE=75;
@@ -374,9 +379,9 @@
 
     const VIEW_OFFSET_REL=0.10;
 
-    // RTP
+    // ---- RTP блок ----
     let totalBet=0,totalPayout=0;
-    const TARGET_RTP=0.96;
+    const TARGET_RTP=0.96; // целевой RTP = 96%
     let roundHistory=[];
 
     // автоигра
@@ -386,11 +391,13 @@
       if(totalBet<=0) return TARGET_RTP;
       return totalPayout/totalBet;
     }
+
+    // Возвращает коэффициент, который показывает, насколько надо "помогать" игроку
     function getRTPFactor(){
-      if(totalBet<50) return 1;
+      if(totalBet<50) return 1; // пока мало статистики — не крутим математику
       const current=getCurrentRTP();
-      const diff=TARGET_RTP-current;
-      let factor=1+diff*0.7;
+      const diff=TARGET_RTP-current; // >0 — игроку не везёт, <0 — слишком везёт
+      let factor=1+diff*0.7;        // приближаем к 1
       if(factor<0.5) factor=0.5;
       if(factor>1.6) factor=1.6;
       return factor;
@@ -452,7 +459,7 @@
     });
     document.addEventListener("click",e=>{
       if(!menuPanel.contains(e.target)&&e.target!==menuBtn){
-        // оставляем открытым, если кликнули мимо
+        // можно было бы закрывать здесь меню
       }
     });
     menuDepositBtn.addEventListener("click",()=>{
@@ -516,9 +523,13 @@
         updateBalanceUI();
       }
       roundHistory.unshift({result,bet:baseBet,multiplier,win:winAmount});
-      if(roundHistory.length>12) roundHistory.pop();
+      if(roundHistory.length>50) roundHistory.pop();
       updateHistoryUI();
       startBtn.disabled=false;
+
+      // Лог RTP в консоль
+      const rtp=getCurrentRTP()*100;
+      console.log(`RTP: ${rtp.toFixed(1)}% (target ${(TARGET_RTP*100).toFixed(0)}%)`);
     }
 
     function getLastOfType(type){
@@ -544,12 +555,12 @@
       const w=canvas.width/window.devicePixelRatio;
       const h=canvas.height/window.devicePixelRatio;
       const size=58;
-      const minY=h*0.05;   // чуть выше
-      const maxY=h*0.78;   // почти до воды
+      const minY=h*0.05;
+      const maxY=h*0.78;
       const y=minY+Math.random()*(maxY-minY);
       const x=w+size*0.8;
       const last=getLastOfType("bird");
-      const minGap=80; // птицы могут быть ближе
+      const minGap=80;
       if(last && last.x-x<minGap) return;
       objects.push({
         type:"bird",
@@ -570,9 +581,17 @@
     function randomBonusKey(rtpFactor){
       const factor=rtpFactor||1;
       const ws=BONUS_WEIGHTS.map(b=>({...b}));
+
+      // Если игроку не везёт (factor>1) — увеличиваем вес крупных множителей
+      // Если везёт (factor<1) — наоборот, уменьшаем
       for(const b of ws){
-        if(["x10","x20","x50","x100"].includes(b.key)) b.w*=factor;
+        if(["x10","x20","x50","x100"].includes(b.key)){
+          b.w*=factor;
+        }else{
+          b.w*= (2 - factor); // x2/x3/x5 становятся популярнее при factor<1
+        }
       }
+
       let total=0;for(const b of ws) total+=b.w;
       let r=Math.random()*total;
       for(const b of ws){
@@ -590,7 +609,7 @@
       const y=minY+Math.random()*(maxY-minY);
       const x=w+size*0.6;
       const last=getLastOfType("bonus");
-      const minGap=100; // бонусы тоже плотнее
+      const minGap=100;
       if(last && last.x-x<minGap) return;
       objects.push({
         type:"bonus",
@@ -713,10 +732,25 @@
         return;
       }
 
+      // ---- здесь включаем RTP-контроль ----
       const rtpFactor=getRTPFactor();
-      const islandProb=Math.max(0.0005,ISLAND_BASE_PROB/(1+multiplier*0.1))*(rtpFactor>1?1.15:0.9);
-      const birdProb=BIRD_PROB;
-      const bonusProb=BONUS_PROB*(rtpFactor>1?1.2:0.8);
+
+      // База: чем больше множитель, тем меньше шанс острова прямо сейчас
+      const baseIslandProb=Math.max(
+        0.0005,
+        ISLAND_BASE_PROB/(1+multiplier*0.1)
+      );
+
+      // Если RTP ниже цели (factor>1) — повышаем шанс острова,
+      // если выше (factor<1) — снижаем.
+      const islandProb = baseIslandProb * rtpFactor;
+
+      // Птицы: при факторе >1 (игроку не везёт) — птиц немного меньше,
+      // при factor<1 (игрок слишком в плюсе) — немного больше.
+      const birdProb  = BIRD_BASE_PROB  * (1.3 - 0.3*rtpFactor);
+
+      // Бонусы: при factor>1 — бонусов больше, при <1 — меньше.
+      const bonusProb = BONUS_BASE_PROB * rtpFactor;
 
       if(Math.random()<islandProb) spawnIsland();
       if(Math.random()<birdProb)  spawnBird();
