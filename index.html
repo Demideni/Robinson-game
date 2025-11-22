@@ -112,13 +112,13 @@
       display:block;
     }
 
-    /* ---------- SPLASH (start screen) ---------- */
+    /* ---------- SPLASH (start screen, чистая картинка) ---------- */
     #splash{
-  position:fixed;inset:0;
-  background: url('assets/splash_bg.png') center center / cover no-repeat;
-  display:flex;align-items:center;justify-content:center;
-  z-index:999;transition:opacity .6s ease;
-}
+      position:fixed;inset:0;
+      background:url('assets/splash_bg.png') center center / cover no-repeat;
+      display:flex;align-items:center;justify-content:center;
+      z-index:999;transition:opacity .6s ease;
+    }
     #splash.hidden{opacity:0;pointer-events:none}
     #splash-inner{
       width:100%;max-width:360px;
@@ -145,7 +145,7 @@
       padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px));
       z-index:2000;pointer-events:auto;
       backdrop-filter:blur(16px);
-      border-top:1px solid rgba(255,24,78,.6);
+      /* border-top убран, чтобы не было красной полоски */
       box-shadow:0 -10px 30px rgba(0,0,0,.95);
     }
     #bottom-ui,#bottom-ui *{
@@ -881,6 +881,7 @@
           gravity=Math.max(GRAVITY_BASE*0.8,gravity-20);
           bonusPulse=0.25;
           addBonusParticles(o.x,o.y);
+          // всплывающая надпись бонуса — белый текст с чёрной окантовкой
           spawnFloatingText(o.kind.toUpperCase(), robinson.x + 70, robinson.y - 40);
           o._dead=true;
           playBonusSound();
@@ -972,6 +973,7 @@
       ctx.restore();
     }
 
+    // всплывающие надписи бонусов: белый текст с чёрной окантовкой
     function drawFloatingTexts(){
       const h=canvas.height/window.devicePixelRatio;
       const viewOffsetY=-h*VIEW_OFFSET_REL;
@@ -988,14 +990,10 @@
         const y=ft.y+cameraY+viewOffsetY;
 
         ctx.lineWidth=3;
-        ctx.strokeStyle="rgba(0,0,0,0.85)";
+        ctx.strokeStyle="rgba(0,0,0,0.9)";
         ctx.strokeText(ft.text,x,y);
 
-        const grad=ctx.createLinearGradient(x-40,y-10,x+40,y+10);
-        grad.addColorStop(0,"#ff184e");
-        grad.addColorStop(0.5,"#ff4b8a");
-        grad.addColorStop(1,"#ffd1e6");
-        ctx.fillStyle=grad;
+        ctx.fillStyle="#ffffff";
         ctx.fillText(ft.text,x,y);
       }
       ctx.restore();
@@ -1019,6 +1017,7 @@
       ctx.restore();
     }
 
+    // сумма потенциального выигрыша над Робинзоном: белый текст с чёрной окантовкой
     function drawWinAboveHero(){
       if(!heroVisible) return;
       const h=canvas.height/window.devicePixelRatio;
@@ -1037,11 +1036,7 @@
       ctx.strokeStyle="rgba(0,0,0,0.9)";
       ctx.strokeText(text,px,py);
 
-      const grad=ctx.createLinearGradient(px-45,py-10,px+45,py+12);
-      grad.addColorStop(0,"#ff184e");
-      grad.addColorStop(0.5,"#ff4b8a");
-      grad.addColorStop(1,"#ffe4f2");
-      ctx.fillStyle=grad;
+      ctx.fillStyle="#ffffff";
       ctx.fillText(text,px,py);
 
       ctx.restore();
