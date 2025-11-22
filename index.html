@@ -114,13 +114,11 @@
 
     /* ---------- SPLASH (start screen) ---------- */
     #splash{
-      position:fixed;inset:0;
-      background:
-        radial-gradient(circle at top,rgba(0,0,0,.15) 0,rgba(0,0,0,.7) 60%,rgba(0,0,0,.9) 100%),
-        url('assets/splash_bg.png') center center / cover no-repeat;
-      display:flex;align-items:center;justify-content:center;
-      z-index:999;transition:opacity .6s ease;
-    }
+  position:fixed;inset:0;
+  background: url('assets/splash_bg.png') center center / cover no-repeat;
+  display:flex;align-items:center;justify-content:center;
+  z-index:999;transition:opacity .6s ease;
+}
     #splash.hidden{opacity:0;pointer-events:none}
     #splash-inner{
       width:100%;max-width:360px;
