@@ -113,39 +113,23 @@
     }
 
     /* ---------- SPLASH (start screen) ---------- */
-   #splash{
-  position:fixed;inset:0;
-  background:
-    radial-gradient(circle at top,rgba(0,0,0,.4) 0,rgba(0,0,0,.8) 60%,rgba(0,0,0,1) 100%),
-    url('assets/splash_bg.png') center center / cover no-repeat;
-  display:flex;align-items:center;justify-content:center;
-  z-index:999;transition:opacity .6s ease;
-}
+    #splash{
+      position:fixed;inset:0;
+      background:
+        radial-gradient(circle at top,rgba(0,0,0,.15) 0,rgba(0,0,0,.7) 60%,rgba(0,0,0,.9) 100%),
+        url('assets/splash_bg.png') center center / cover no-repeat;
+      display:flex;align-items:center;justify-content:center;
+      z-index:999;transition:opacity .6s ease;
+    }
     #splash.hidden{opacity:0;pointer-events:none}
-   #splash-inner{
-  width:100%;max-width:360px;
-  padding:24px 20px calc(24px + env(safe-area-inset-bottom));
-  text-align:center;display:flex;flex-direction:column;gap:16px;
-  color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.9);
-  background:transparent;   /* было: radial-gradient(...) */
-  border:none;              /* убрали рамку */
-  box-shadow:none;          /* убрали тень */
-}
-    #splash-logo{
-      font-size:26px;font-weight:800;letter-spacing:1.5px;
-      text-transform:uppercase;
-    }
-    #splash-logo span{
-      font-size:30px;margin-right:6px;
-      filter:drop-shadow(0 0 10px rgba(255,200,120,.9));
-    }
-    #splash-subtitle{
-      font-size:14px;opacity:.9;
-      color:#ffe1f0;
-    }
-    #splash-hint{
-      font-size:12px;opacity:.75;
-      color:#ffadc9;
+    #splash-inner{
+      width:100%;max-width:360px;
+      padding:24px 20px calc(24px + env(safe-area-inset-bottom));
+      text-align:center;display:flex;flex-direction:column;gap:16px;
+      color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.9);
+      background:transparent;
+      border:none;
+      box-shadow:none;
     }
 
     /* ---------- BOTTOM UI (Pulz panel) ---------- */
@@ -244,17 +228,9 @@
   </style>
 </head>
 <body>
-  <!-- Заставка -->
+  <!-- Заставка (только картинка) -->
   <div id="splash">
-    <div id="splash-inner">
-      <div id="splash-logo"><span>🏝️</span></div>
-      <div id="splash-subtitle">
-        Лети к острову, собирай бонусы и умножай выигрыш.
-      </div>
-      <div id="splash-hint">
-        Совет: выбери ставку (внизу справа), а затем жми ▶.
-      </div>
-    </div>
+    <div id="splash-inner"></div>
   </div>
 
   <!-- Верхний UI -->
@@ -461,7 +437,7 @@
     const GRAVITY_BASE=75;
     let gravity=GRAVITY_BASE;
 
-    const PLAYFIELD_TOP_REL = 0.18; // верхняя граница геймплея (между баром и игрой)
+    const PLAYFIELD_TOP_REL = 0.18; // верхняя граница геймплея
 
     let bonusPulse=0;
     let robinsonAnimTime=0;
@@ -558,7 +534,7 @@
     });
     document.addEventListener("click",e=>{
       if(!menuPanel.contains(e.target)&&e.target!==menuBtn){
-        // закрывать не обязательно
+        // можно закрывать меню, если нужно
       }
     });
     menuDepositBtn.addEventListener("click",()=>{
@@ -903,7 +879,7 @@
           multiplier*=val;
           multiplierEl.textContent=multiplier.toFixed(2)+"x";
           statusEl.textContent="Бонус "+o.kind+"!";
-          robinson.vy=-196; // чуть мягче взлёт
+          robinson.vy=-196; // взлёт после бонуса
           gravity=Math.max(GRAVITY_BASE*0.8,gravity-20);
           bonusPulse=0.25;
           addBonusParticles(o.x,o.y);
@@ -929,7 +905,6 @@
         const scale=h/bg.height;
         const imgW=bg.width*scale;
         for(let x=0;x<w+imgW;x+=imgW){
-          // фон двигается вместе с камерой
           ctx.drawImage(bg,x,cameraY+viewOffsetY*0.3,imgW,h);
         }
       }else{
@@ -999,7 +974,6 @@
       ctx.restore();
     }
 
-    // Pulz-стиль всплывающих надписей бонусов, без shadowBlur
     function drawFloatingTexts(){
       const h=canvas.height/window.devicePixelRatio;
       const viewOffsetY=-h*VIEW_OFFSET_REL;
