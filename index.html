@@ -27,7 +27,7 @@
         rgba(5,0,15,.6),
         rgba(5,0,15,0)
       );
-      border-bottom:1px solid rgba(255,24,78,.28);
+      /* красную полоску убрали — границы больше нет */
       box-shadow:0 6px 18px rgba(0,0,0,.7);
       z-index:10;pointer-events:none;
     }
@@ -812,7 +812,7 @@
       }
 
       if(state==="idle"||state==="won"){
-        cameraY=-(robinson.y-h*0.55)*0.25;
+        cameraY=-(robinson.y-h*0.55)*0.11;
         cameraLockY=null;
         if(state==="won") winAnimTime+=dt;
         return;
@@ -917,7 +917,7 @@
       }
 
       objects=objects.filter(o=>o.x+o.w>-50 && !o._dead);
-      cameraY=-(robinson.y-h*0.55)*0.1;
+      cameraY=-(robinson.y-h*0.55)*0.11;
       cameraLockY=null;
     }
 
@@ -999,6 +999,7 @@
       ctx.restore();
     }
 
+    // Pulz-стиль всплывающих надписей бонусов
     function drawFloatingTexts(){
       const h=canvas.height/window.devicePixelRatio;
       const viewOffsetY=-h*VIEW_OFFSET_REL;
@@ -1010,11 +1011,24 @@
       for(const ft of floatingTexts){
         if(ft.alpha<=0) continue;
         ctx.globalAlpha=ft.alpha;
-        ctx.strokeStyle="rgba(0,0,0,0.7)";
-        ctx.lineWidth=4;
-        ctx.strokeText(ft.text,ft.x,ft.y+cameraY+viewOffsetY);
-        ctx.fillStyle="#ffe680";
-        ctx.fillText(ft.text,ft.x,ft.y+cameraY+viewOffsetY);
+
+        const x=ft.x;
+        const y=ft.y+cameraY+viewOffsetY;
+
+        // неоновый контур
+        ctx.shadowColor="rgba(255,24,78,0.9)";
+        ctx.shadowBlur=14;
+        ctx.strokeStyle="rgba(0,0,0,0.95)";
+        ctx.lineWidth=5;
+        ctx.strokeText(ft.text,x,y);
+
+        // розово-красный градиент
+        const grad=ctx.createLinearGradient(x-40,y-10,x+40,y+10);
+        grad.addColorStop(0,"#ff184e");
+        grad.addColorStop(0.5,"#ff4b8a");
+        grad.addColorStop(1,"#ffd1e6");
+        ctx.fillStyle=grad;
+        ctx.fillText(ft.text,x,y);
       }
       ctx.restore();
     }
@@ -1037,6 +1051,7 @@
       ctx.restore();
     }
 
+    // Pulz-стиль потенциального выигрыша над Робинзоном
     function drawWinAboveHero(){
       if(!heroVisible) return;
       const h=canvas.height/window.devicePixelRatio;
@@ -1050,14 +1065,22 @@
       ctx.font="bold 20px system-ui";
       ctx.textAlign="center";
       ctx.textBaseline="middle";
-      ctx.strokeStyle="rgba(0,0,0,.8)";
+
+      // неоновый контур
+      ctx.shadowColor="rgba(255,24,78,0.9)";
+      ctx.shadowBlur=16;
+      ctx.strokeStyle="rgba(0,0,0,0.95)";
       ctx.lineWidth=4;
       ctx.strokeText(text,px,py);
-      const grad=ctx.createLinearGradient(px-30,py-10,px+30,py+10);
-      grad.addColorStop(0,"#ffe082");
-      grad.addColorStop(1,"#ffffff");
+
+      // градиент в стиле Pulz
+      const grad=ctx.createLinearGradient(px-45,py-10,px+45,py+12);
+      grad.addColorStop(0,"#ff184e");
+      grad.addColorStop(0.5,"#ff4b8a");
+      grad.addColorStop(1,"#ffe4f2");
       ctx.fillStyle=grad;
       ctx.fillText(text,px,py);
+
       ctx.restore();
     }
 
