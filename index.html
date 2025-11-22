@@ -727,7 +727,7 @@
       robinson.y+=robinson.vy*dt;
 
       // потолок выше: герой может подлетать ближе к верхнему краю
-      const topLimit=h*0.05; // было 0.12
+      const topLimit=h*0.12; // было 0.12
       if(robinson.y<topLimit){
         robinson.y=topLimit;
         if(robinson.vy<0) robinson.vy=0;
