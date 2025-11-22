@@ -357,7 +357,6 @@
     const OBJECT_SPEED = 494; // +30% скорости
     const ISLAND_BASE_PROB=0.012;
 
-    // Базовые вероятности (до RTP-коррекции)
     const BIRD_BASE_PROB  = 0.14 * 3;
     const BONUS_BASE_PROB = 0.14 * 3;
 
@@ -379,25 +378,25 @@
 
     const VIEW_OFFSET_REL=0.10;
 
-    // ---- RTP блок ----
+    // RTP
     let totalBet=0,totalPayout=0;
-    const TARGET_RTP=0.96; // целевой RTP = 96%
+    const TARGET_RTP=0.96;
     let roundHistory=[];
 
-    // автоигра
     let autoPlay=false,autoRestartTimer=0;
+
+    // всплывающие надписи бонусов
+    let floatingTexts = [];
 
     function getCurrentRTP(){
       if(totalBet<=0) return TARGET_RTP;
       return totalPayout/totalBet;
     }
-
-    // Возвращает коэффициент, который показывает, насколько надо "помогать" игроку
     function getRTPFactor(){
-      if(totalBet<50) return 1; // пока мало статистики — не крутим математику
+      if(totalBet<50) return 1;
       const current=getCurrentRTP();
-      const diff=TARGET_RTP-current; // >0 — игроку не везёт, <0 — слишком везёт
-      let factor=1+diff*0.7;        // приближаем к 1
+      const diff=TARGET_RTP-current;
+      let factor=1+diff*0.7;
       if(factor<0.5) factor=0.5;
       if(factor>1.6) factor=1.6;
       return factor;
@@ -421,6 +420,7 @@
       cameraY=0;cameraLockY=null;
       gameOverAnimTime=0;winAnimTime=0;
       autoRestartTimer=0;shakeTime=0;
+      floatingTexts = [];
       multiplierEl.textContent="1.00x";
 
       const baseX=w*0.55;
@@ -459,7 +459,7 @@
     });
     document.addEventListener("click",e=>{
       if(!menuPanel.contains(e.target)&&e.target!==menuBtn){
-        // можно было бы закрывать здесь меню
+        // при желании можно закрывать меню
       }
     });
     menuDepositBtn.addEventListener("click",()=>{
@@ -527,7 +527,6 @@
       updateHistoryUI();
       startBtn.disabled=false;
 
-      // Лог RTP в консоль
       const rtp=getCurrentRTP()*100;
       console.log(`RTP: ${rtp.toFixed(1)}% (target ${(TARGET_RTP*100).toFixed(0)}%)`);
     }
@@ -582,13 +581,11 @@
       const factor=rtpFactor||1;
       const ws=BONUS_WEIGHTS.map(b=>({...b}));
 
-      // Если игроку не везёт (factor>1) — увеличиваем вес крупных множителей
-      // Если везёт (factor<1) — наоборот, уменьшаем
       for(const b of ws){
         if(["x10","x20","x50","x100"].includes(b.key)){
           b.w*=factor;
         }else{
-          b.w*= (2 - factor); // x2/x3/x5 становятся популярнее при factor<1
+          b.w*=(2-factor);
         }
       }
 
@@ -656,6 +653,19 @@
       if(navigator.vibrate) navigator.vibrate(pattern);
     }
 
+    function spawnFloatingText(text,x,y){
+      floatingTexts.push({
+        text,
+        x,
+        y,
+        life:0,
+        maxLife:1.0,
+        vx:0,
+        vy:-40,
+        alpha:1
+      });
+    }
+
     function update(dt){
       time+=dt;
       bonusPulse=Math.max(0,bonusPulse-dt);
@@ -666,7 +676,7 @@
       const h=canvas.height/window.devicePixelRatio;
       const waterY=h*WATER_LINE_REL;
 
-      // частицы воды
+      // вода-частицы
       for(const p of splashParticles){
         p.x+=p.vx*dt;
         p.y+=p.vy*dt;
@@ -675,7 +685,7 @@
       }
       splashParticles=splashParticles.filter(p=>p.life<p.maxLife);
 
-      // частицы бонуса
+      // бонус-частицы
       for(const p of bonusParticles){
         p.x+=p.vx*dt;
         p.y+=p.vy*dt;
@@ -683,6 +693,14 @@
         p.life+=dt;
       }
       bonusParticles=bonusParticles.filter(p=>p.life<p.maxLife);
+
+      // всплывающие надписи
+      for(const ft of floatingTexts){
+        ft.life+=dt;
+        ft.y+=ft.vy*dt;
+        ft.alpha=1-ft.life/ft.maxLife;
+      }
+      floatingTexts=floatingTexts.filter(ft=>ft.life<ft.maxLife);
 
       if((state==="won"||state==="lost") && autoPlay){
         autoRestartTimer+=dt;
@@ -732,24 +750,14 @@
         return;
       }
 
-      // ---- здесь включаем RTP-контроль ----
       const rtpFactor=getRTPFactor();
 
-      // База: чем больше множитель, тем меньше шанс острова прямо сейчас
       const baseIslandProb=Math.max(
         0.0005,
         ISLAND_BASE_PROB/(1+multiplier*0.1)
       );
-
-      // Если RTP ниже цели (factor>1) — повышаем шанс острова,
-      // если выше (factor<1) — снижаем.
       const islandProb = baseIslandProb * rtpFactor;
-
-      // Птицы: при факторе >1 (игроку не везёт) — птиц немного меньше,
-      // при factor<1 (игрок слишком в плюсе) — немного больше.
       const birdProb  = BIRD_BASE_PROB  * (1.3 - 0.3*rtpFactor);
-
-      // Бонусы: при factor>1 — бонусов больше, при <1 — меньше.
       const bonusProb = BONUS_BASE_PROB * rtpFactor;
 
       if(Math.random()<islandProb) spawnIsland();
@@ -799,6 +807,8 @@
           gravity=Math.max(GRAVITY_BASE*0.8,gravity-20);
           bonusPulse=0.25;
           addBonusParticles(o.x,o.y);
+          // всплывающий текст бонуса справа-сверху от героя
+          spawnFloatingText(o.kind.toUpperCase(), robinson.x + 70, robinson.y - 40);
           o._dead=true;
           playBonusSound();
         }
@@ -883,6 +893,26 @@
         ctx.beginPath();
         ctx.arc(p.x,p.y+cameraY+viewOffsetY,2.2,0,Math.PI*2);
         ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function drawFloatingTexts(){
+      const h=canvas.height/window.devicePixelRatio;
+      const viewOffsetY=-h*VIEW_OFFSET_REL;
+      if(!floatingTexts.length) return;
+      ctx.save();
+      ctx.font="bold 22px system-ui";
+      ctx.textAlign="center";
+      ctx.textBaseline="middle";
+      for(const ft of floatingTexts){
+        if(ft.alpha<=0) continue;
+        ctx.globalAlpha=ft.alpha;
+        ctx.strokeStyle="rgba(0,0,0,0.7)";
+        ctx.lineWidth=4;
+        ctx.strokeText(ft.text,ft.x,ft.y+cameraY+viewOffsetY);
+        ctx.fillStyle="#ffe680";
+        ctx.fillText(ft.text,ft.x,ft.y+cameraY+viewOffsetY);
       }
       ctx.restore();
     }
@@ -1073,6 +1103,7 @@
       drawWinAboveHero();
       drawBonusParticles();
       drawSplash();
+      drawFloatingTexts();
       drawGameOverOverlay();
       drawWinOverlay();
 
