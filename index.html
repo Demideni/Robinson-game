@@ -405,7 +405,8 @@
     function resetRound(){
       const w=canvas.width/window.devicePixelRatio;
       const h=canvas.height/window.devicePixelRatio;
-      robinson={x:w*HERO_X_REL,y:h*0.5,vy:-170,width:72,height:72};
+      // Робинзон на 10% меньше (72 -> 65)
+      robinson={x:w*HERO_X_REL,y:h*0.5,vy:-170,width:65,height:65};
       gravity=GRAVITY_BASE;
       objects=[];
       splashParticles=[];
@@ -709,7 +710,7 @@
       }
 
       if(state==="idle"||state==="won"){
-        cameraY=-(robinson.y-h*0.55)*0.11; // камера чувствительнее на 10%
+        cameraY=-(robinson.y-h*0.55)*0.11;
         cameraLockY=null;
         if(state==="won") winAnimTime+=dt;
         return;
@@ -726,8 +727,7 @@
       robinson.vy+=gravity*dt;
       robinson.y+=robinson.vy*dt;
 
-      // потолок выше: герой может подлетать ближе к верхнему краю
-      const topLimit=h*0.12; // было 0.12
+      const topLimit=h*0.05; // потолок выше
       if(robinson.y<topLimit){
         robinson.y=topLimit;
         if(robinson.vy<0) robinson.vy=0;
@@ -803,11 +803,11 @@
           multiplier*=val;
           multiplierEl.textContent=multiplier.toFixed(2)+"x";
           statusEl.textContent="Бонус "+o.kind+"!";
-          robinson.vy=-230;
+          // подъём после бонуса на 15% меньше: -230 -> -196
+          robinson.vy=-196;
           gravity=Math.max(GRAVITY_BASE*0.8,gravity-20);
           bonusPulse=0.25;
           addBonusParticles(o.x,o.y);
-          // всплывающий текст бонуса справа-сверху от героя
           spawnFloatingText(o.kind.toUpperCase(), robinson.x + 70, robinson.y - 40);
           o._dead=true;
           playBonusSound();
@@ -815,7 +815,7 @@
       }
 
       objects=objects.filter(o=>o.x+o.w>-50 && !o._dead);
-      cameraY=-(robinson.y-h*0.55)*0.11; // тоже усиленная камера
+      cameraY=-(robinson.y-h*0.55)*0.11;
       cameraLockY=null;
     }
 
