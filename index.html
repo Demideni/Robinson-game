@@ -507,7 +507,6 @@
     function resetRound(){
       const w=canvas.width/window.devicePixelRatio;
       const h=canvas.height/window.devicePixelRatio;
-      // Робинзон уменьшен (10%)
       robinson={x:w*HERO_X_REL,y:h*0.5,vy:-170,width:65,height:65};
       gravity=GRAVITY_BASE;
       objects=[];
@@ -999,7 +998,7 @@
       ctx.restore();
     }
 
-    // Pulz-стиль всплывающих надписей бонусов
+    // Pulz-стиль всплывающих надписей бонусов, но без shadowBlur
     function drawFloatingTexts(){
       const h=canvas.height/window.devicePixelRatio;
       const viewOffsetY=-h*VIEW_OFFSET_REL;
@@ -1015,14 +1014,12 @@
         const x=ft.x;
         const y=ft.y+cameraY+viewOffsetY;
 
-        // неоновый контур
-        ctx.shadowColor="rgba(255,24,78,0.9)";
-        ctx.shadowBlur=14;
-        ctx.strokeStyle="rgba(0,0,0,0.95)";
-        ctx.lineWidth=5;
+        // Аккуратный тёмный контур
+        ctx.lineWidth=3;
+        ctx.strokeStyle="rgba(0,0,0,0.85)";
         ctx.strokeText(ft.text,x,y);
 
-        // розово-красный градиент
+        // Градиент Pulz без теней
         const grad=ctx.createLinearGradient(x-40,y-10,x+40,y+10);
         grad.addColorStop(0,"#ff184e");
         grad.addColorStop(0.5,"#ff4b8a");
@@ -1051,7 +1048,7 @@
       ctx.restore();
     }
 
-    // Pulz-стиль потенциального выигрыша над Робинзоном
+    // Pulz-стиль потенциального выигрыша над Робинзоном, без теней
     function drawWinAboveHero(){
       if(!heroVisible) return;
       const h=canvas.height/window.devicePixelRatio;
@@ -1066,14 +1063,12 @@
       ctx.textAlign="center";
       ctx.textBaseline="middle";
 
-      // неоновый контур
-      ctx.shadowColor="rgba(255,24,78,0.9)";
-      ctx.shadowBlur=16;
-      ctx.strokeStyle="rgba(0,0,0,0.95)";
-      ctx.lineWidth=4;
+      // Аккуратный контур без shadowBlur
+      ctx.lineWidth=3;
+      ctx.strokeStyle="rgba(0,0,0,0.9)";
       ctx.strokeText(text,px,py);
 
-      // градиент в стиле Pulz
+      // Градиент Pulz
       const grad=ctx.createLinearGradient(px-45,py-10,px+45,py+12);
       grad.addColorStop(0,"#ff184e");
       grad.addColorStop(0.5,"#ff4b8a");
