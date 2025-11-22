@@ -27,7 +27,6 @@
         rgba(5,0,15,.6),
         rgba(5,0,15,0)
       );
-      /* красную полоску убрали — границы больше нет */
       box-shadow:0 6px 18px rgba(0,0,0,.7);
       z-index:10;pointer-events:none;
     }
@@ -465,6 +464,8 @@
     const GRAVITY_BASE=75;
     let gravity=GRAVITY_BASE;
 
+    const PLAYFIELD_TOP_REL = 0.18; // верхняя граница геймплея (между баром и игрой)
+
     let bonusPulse=0;
     let robinsonAnimTime=0;
     let cameraY=0,cameraLockY=null;
@@ -560,7 +561,7 @@
     });
     document.addEventListener("click",e=>{
       if(!menuPanel.contains(e.target)&&e.target!==menuBtn){
-        // при желании можно закрывать меню
+        // закрывать не обязательно
       }
     });
     menuDepositBtn.addEventListener("click",()=>{
@@ -655,7 +656,7 @@
       const w=canvas.width/window.devicePixelRatio;
       const h=canvas.height/window.devicePixelRatio;
       const size=58;
-      const minY=h*0.05;
+      const minY=h*PLAYFIELD_TOP_REL + 20; // не залетает под верхний бар
       const maxY=h*0.78;
       const y=minY+Math.random()*(maxY-minY);
       const x=w+size*0.8;
@@ -702,7 +703,7 @@
       const w=canvas.width/window.devicePixelRatio;
       const h=canvas.height/window.devicePixelRatio;
       const size=38;
-      const minY=h*0.08;
+      const minY=h*PLAYFIELD_TOP_REL + 20; // бонусы тоже не в баре
       const maxY=h*0.75;
       const y=minY+Math.random()*(maxY-minY);
       const x=w+size*0.6;
@@ -811,7 +812,7 @@
       }
 
       if(state==="idle"||state==="won"){
-        cameraY=-(robinson.y-h*0.55)*0.3;
+        cameraY=-(robinson.y-h*0.55)*0.11;
         cameraLockY=null;
         if(state==="won") winAnimTime+=dt;
         return;
@@ -828,7 +829,8 @@
       robinson.vy+=gravity*dt;
       robinson.y+=robinson.vy*dt;
 
-      const topLimit=h*0.05;
+      // Верхний предел — не пускаем в зону верхнего бара
+      const topLimit=h*PLAYFIELD_TOP_REL;
       if(robinson.y<topLimit){
         robinson.y=topLimit;
         if(robinson.vy<0) robinson.vy=0;
@@ -904,8 +906,7 @@
           multiplier*=val;
           multiplierEl.textContent=multiplier.toFixed(2)+"x";
           statusEl.textContent="Бонус "+o.kind+"!";
-          // подъём после бонуса на 15% меньше (-230 -> -196)
-          robinson.vy=-196;
+          robinson.vy=-196; // чуть мягче взлёт
           gravity=Math.max(GRAVITY_BASE*0.8,gravity-20);
           bonusPulse=0.25;
           addBonusParticles(o.x,o.y);
@@ -916,6 +917,8 @@
       }
 
       objects=objects.filter(o=>o.x+o.w>-50 && !o._dead);
+
+      // Камера следует за Робинзоном мягко
       cameraY=-(robinson.y-h*0.55)*0.11;
       cameraLockY=null;
     }
@@ -929,7 +932,8 @@
         const scale=h/bg.height;
         const imgW=bg.width*scale;
         for(let x=0;x<w+imgW;x+=imgW){
-          ctx.drawImage(bg,x,cameraY*0.15+viewOffsetY*0.3,imgW,h);
+          // фон двигается вместе с камерой
+          ctx.drawImage(bg,x,cameraY+viewOffsetY*0.3,imgW,h);
         }
       }else{
         ctx.fillStyle="#4cc3ff";
@@ -998,7 +1002,7 @@
       ctx.restore();
     }
 
-    // Pulz-стиль всплывающих надписей бонусов, но без shadowBlur
+    // Pulz-стиль всплывающих надписей бонусов, без shadowBlur
     function drawFloatingTexts(){
       const h=canvas.height/window.devicePixelRatio;
       const viewOffsetY=-h*VIEW_OFFSET_REL;
@@ -1014,12 +1018,10 @@
         const x=ft.x;
         const y=ft.y+cameraY+viewOffsetY;
 
-        // Аккуратный тёмный контур
         ctx.lineWidth=3;
         ctx.strokeStyle="rgba(0,0,0,0.85)";
         ctx.strokeText(ft.text,x,y);
 
-        // Градиент Pulz без теней
         const grad=ctx.createLinearGradient(x-40,y-10,x+40,y+10);
         grad.addColorStop(0,"#ff184e");
         grad.addColorStop(0.5,"#ff4b8a");
@@ -1048,7 +1050,6 @@
       ctx.restore();
     }
 
-    // Pulz-стиль потенциального выигрыша над Робинзоном, без теней
     function drawWinAboveHero(){
       if(!heroVisible) return;
       const h=canvas.height/window.devicePixelRatio;
@@ -1063,12 +1064,10 @@
       ctx.textAlign="center";
       ctx.textBaseline="middle";
 
-      // Аккуратный контур без shadowBlur
       ctx.lineWidth=3;
       ctx.strokeStyle="rgba(0,0,0,0.9)";
       ctx.strokeText(text,px,py);
 
-      // Градиент Pulz
       const grad=ctx.createLinearGradient(px-45,py-10,px+45,py+12);
       grad.addColorStop(0,"#ff184e");
       grad.addColorStop(0.5,"#ff4b8a");
