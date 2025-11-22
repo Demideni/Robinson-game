@@ -56,7 +56,6 @@
       position:absolute;
       inset:0;
     }
-    /* Лёгкое затемнение фона игры */
     #canvas-container::before{
       content:"";
       position:absolute;
@@ -90,7 +89,7 @@
     #splash-subtitle{font-size:14px;opacity:.9}
     #splash-hint{font-size:12px;opacity:.7}
 
-    /* Нижнее табло — скрыто при старте */
+    /* Нижнее табло */
     #bottom-ui{
       position:absolute;left:0;right:0;bottom:0;
       min-height:120px;
@@ -676,7 +675,7 @@
       const h=canvas.height/window.devicePixelRatio;
       const waterY=h*WATER_LINE_REL;
 
-      // вода-частицы
+      // частицы воды
       for(const p of splashParticles){
         p.x+=p.vx*dt;
         p.y+=p.vy*dt;
@@ -685,7 +684,7 @@
       }
       splashParticles=splashParticles.filter(p=>p.life<p.maxLife);
 
-      // бонус-частицы
+      // частицы бонуса
       for(const p of bonusParticles){
         p.x+=p.vx*dt;
         p.y+=p.vy*dt;
@@ -710,7 +709,7 @@
       }
 
       if(state==="idle"||state==="won"){
-        cameraY=-(robinson.y-h*0.55)*0.1;
+        cameraY=-(robinson.y-h*0.55)*0.11; // камера чувствительнее на 10%
         cameraLockY=null;
         if(state==="won") winAnimTime+=dt;
         return;
@@ -727,7 +726,8 @@
       robinson.vy+=gravity*dt;
       robinson.y+=robinson.vy*dt;
 
-      const topLimit=h*0.12;
+      // потолок выше: герой может подлетать ближе к верхнему краю
+      const topLimit=h*0.05; // было 0.12
       if(robinson.y<topLimit){
         robinson.y=topLimit;
         if(robinson.vy<0) robinson.vy=0;
@@ -815,7 +815,7 @@
       }
 
       objects=objects.filter(o=>o.x+o.w>-50 && !o._dead);
-      cameraY=-(robinson.y-h*0.55)*0.1;
+      cameraY=-(robinson.y-h*0.55)*0.11; // тоже усиленная камера
       cameraLockY=null;
     }
 
