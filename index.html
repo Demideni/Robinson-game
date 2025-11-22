@@ -113,27 +113,24 @@
     }
 
     /* ---------- SPLASH (start screen) ---------- */
-    #splash{
-      position:fixed;inset:0;
-      background:
-        radial-gradient(circle at top,#3a0d1f 0,#05010a 45%,#010006 100%),
-        #000;
-      display:flex;align-items:center;justify-content:center;
-      z-index:999;transition:opacity .6s ease;
-    }
+   #splash{
+  position:fixed;inset:0;
+  background:
+    radial-gradient(circle at top,rgba(0,0,0,.4) 0,rgba(0,0,0,.8) 60%,rgba(0,0,0,1) 100%),
+    url('assets/splash_bg.png') center center / cover no-repeat;
+  display:flex;align-items:center;justify-content:center;
+  z-index:999;transition:opacity .6s ease;
+}
     #splash.hidden{opacity:0;pointer-events:none}
-    #splash-inner{
-      width:100%;max-width:360px;
-      padding:24px 20px calc(24px + env(safe-area-inset-bottom));
-      text-align:center;display:flex;flex-direction:column;gap:16px;
-      color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.9);
-      background:radial-gradient(circle at top,#1a0710,#05010a);
-      border-radius:20px;
-      border:1px solid rgba(255,24,78,.35);
-      box-shadow:
-        0 0 22px rgba(255,24,78,.6),
-        0 18px 40px rgba(0,0,0,.9);
-    }
+   #splash-inner{
+  width:100%;max-width:360px;
+  padding:24px 20px calc(24px + env(safe-area-inset-bottom));
+  text-align:center;display:flex;flex-direction:column;gap:16px;
+  color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.9);
+  background:transparent;   /* было: radial-gradient(...) */
+  border:none;              /* убрали рамку */
+  box-shadow:none;          /* убрали тень */
+}
     #splash-logo{
       font-size:26px;font-weight:800;letter-spacing:1.5px;
       text-transform:uppercase;
