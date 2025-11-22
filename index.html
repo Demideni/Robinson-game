@@ -4,19 +4,31 @@
   <meta charset="UTF-8" />
   <title>Робинзон — игра</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#021b3b" />
+  <meta name="theme-color" content="#05010a" />
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
+
     html,body{
       width:100%;height:100%;overflow:hidden;
       font-family:system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
-      background:#021b3b;color:#fff;
+      background:
+        radial-gradient(circle at top,#2b0b18 0,#05010a 40%,#020008 100%);
+      color:#fff;
     }
+
+    /* ---------- TOP UI (Pulz style) ---------- */
     #ui{
       position:absolute;top:0;left:0;right:0;
       padding:8px 10px 4px;
       display:flex;flex-direction:column;gap:4px;
-      background:linear-gradient(to bottom,rgba(0,0,0,.6),rgba(0,0,0,0));
+      background:linear-gradient(
+        to bottom,
+        rgba(5,0,15,.92),
+        rgba(5,0,15,.6),
+        rgba(5,0,15,0)
+      );
+      border-bottom:1px solid rgba(255,24,78,.28);
+      box-shadow:0 6px 18px rgba(0,0,0,.7);
       z-index:10;pointer-events:none;
     }
     #ui-top{
@@ -27,15 +39,34 @@
       width:220px;height:55px;
       background:url('assets/logo_robinson.png') no-repeat left center/contain;
       text-indent:-9999px;overflow:hidden;flex-shrink:0;
+      filter:drop-shadow(0 0 8px rgba(255,24,78,.75));
     }
+
     button{
       border:none;border-radius:999px;padding:6px 12px;
       font-size:14px;font-weight:600;cursor:pointer;
-      background:#ffb000;color:#421b00;
-      box-shadow:0 2px 6px rgba(0,0,0,.4);
+      background:linear-gradient(135deg,#ff184e,#ff4b2b);
+      color:#ffffff;
+      border:1px solid rgba(255,255,255,.14);
+      box-shadow:
+        0 0 12px rgba(255,24,78,.7),
+        0 4px 14px rgba(0,0,0,.7);
       white-space:nowrap;
+      text-shadow:0 1px 2px rgba(0,0,0,.8);
+      transition:transform .08s ease,box-shadow .08s ease,filter .12s ease;
     }
-    button:disabled{opacity:.4;cursor:default;box-shadow:none}
+    button:active{
+      transform:scale(.95) translateY(1px);
+      box-shadow:
+        0 0 6px rgba(255,24,78,.6),
+        0 2px 8px rgba(0,0,0,.8);
+    }
+    button:disabled{
+      opacity:.4;cursor:default;
+      box-shadow:none;
+      filter:grayscale(.8) brightness(.7);
+    }
+
     #auth-panel{
       display:flex;gap:6px;justify-content:flex-end;
       pointer-events:auto;padding:0 2px;flex-shrink:0;
@@ -44,14 +75,26 @@
       width:60px;height:60px;padding:0;border-radius:50%;
       background:url('assets/btn_menu.png') center no-repeat;
       background-size:100% 100%;
-      box-shadow:0 2px 6px rgba(0,0,0,.4);font-size:0;
+      box-shadow:
+        0 0 10px rgba(255,24,78,.75),
+        0 4px 12px rgba(0,0,0,.8);
+      font-size:0;
     }
+    #menu-btn:active{
+      transform:scale(.94) translateY(1px);
+    }
+
     #stats{
       display:none;justify-content:space-between;font-size:14px;
       text-shadow:0 1px 3px rgba(0,0,0,.7);padding:0 2px;
     }
-    #status-text{display:none;font-weight:600}
+    #status-text{
+      display:none;font-weight:600;
+      color:#ff8aa8;
+      text-shadow:0 1px 3px rgba(0,0,0,.9);
+    }
 
+    /* ---------- CANVAS + DIM ---------- */
     #canvas-container{
       position:absolute;
       inset:0;
@@ -60,7 +103,7 @@
       content:"";
       position:absolute;
       inset:0;
-      background:rgba(0,0,0,0.25);
+      background:radial-gradient(circle at top,rgba(0,0,0,.05),rgba(0,0,0,.35));
       pointer-events:none;
       z-index:1;
     }
@@ -70,10 +113,12 @@
       display:block;
     }
 
-    /* Заставка */
+    /* ---------- SPLASH (start screen) ---------- */
     #splash{
       position:fixed;inset:0;
-      background:#000 url('assets/splash_bg.png') center/cover no-repeat;
+      background:
+        radial-gradient(circle at top,#3a0d1f 0,#05010a 45%,#010006 100%),
+        #000;
       display:flex;align-items:center;justify-content:center;
       z-index:999;transition:opacity .6s ease;
     }
@@ -82,57 +127,114 @@
       width:100%;max-width:360px;
       padding:24px 20px calc(24px + env(safe-area-inset-bottom));
       text-align:center;display:flex;flex-direction:column;gap:16px;
-      color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.7);
+      color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.9);
+      background:radial-gradient(circle at top,#1a0710,#05010a);
+      border-radius:20px;
+      border:1px solid rgba(255,24,78,.35);
+      box-shadow:
+        0 0 22px rgba(255,24,78,.6),
+        0 18px 40px rgba(0,0,0,.9);
     }
-    #splash-logo{font-size:24px;font-weight:800;letter-spacing:1.5px}
-    #splash-logo span{font-size:30px;margin-right:6px}
-    #splash-subtitle{font-size:14px;opacity:.9}
-    #splash-hint{font-size:12px;opacity:.7}
+    #splash-logo{
+      font-size:26px;font-weight:800;letter-spacing:1.5px;
+      text-transform:uppercase;
+    }
+    #splash-logo span{
+      font-size:30px;margin-right:6px;
+      filter:drop-shadow(0 0 10px rgba(255,200,120,.9));
+    }
+    #splash-subtitle{
+      font-size:14px;opacity:.9;
+      color:#ffe1f0;
+    }
+    #splash-hint{
+      font-size:12px;opacity:.75;
+      color:#ffadc9;
+    }
 
-    /* Нижнее табло */
+    /* ---------- BOTTOM UI (Pulz panel) ---------- */
     #bottom-ui{
       position:absolute;left:0;right:0;bottom:0;
       min-height:120px;
-      background:rgba(0,0,0,.6);
+      background:linear-gradient(
+        to top,
+        rgba(5,0,15,.96),
+        rgba(5,0,15,.9),
+        rgba(5,0,15,.7)
+      );
       display:none;
       align-items:center;justify-content:space-around;
       padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px));
       z-index:2000;pointer-events:auto;
-      backdrop-filter:blur(10px);
+      backdrop-filter:blur(16px);
+      border-top:1px solid rgba(255,24,78,.6);
+      box-shadow:0 -10px 30px rgba(0,0,0,.95);
     }
-    #bottom-ui,#bottom-ui *{color:#fff}
+    #bottom-ui,#bottom-ui *{
+      color:#ffffff;
+    }
     .bottom-item{
       font-size:16px;text-shadow:0 2px 4px rgba(0,0,0,.7);
       display:flex;flex-direction:column;gap:2px;pointer-events:auto;
     }
     .bottom-label{
       font-size:11px;text-transform:uppercase;
-      opacity:.7;letter-spacing:.06em;
+      opacity:.7;letter-spacing:.08em;
+      color:#ff7ea2;
     }
-    .bottom-value{font-size:18px;font-weight:700}
+    .bottom-value{
+      font-size:18px;font-weight:700;
+      color:#ffffff;
+    }
     #bottom-bet,#auto-toggle{cursor:pointer}
 
-    /* Play */
+    /* ---------- PLAY BUTTON (Pulz glow) ---------- */
     #start-round-btn{
       width:128px;height:128px;padding:0;border-radius:50%;
       background:url('assets/btn_play.png') center no-repeat;
       background-size:100% 100%;
-      box-shadow:0 4px 14px rgba(0,0,0,.65);font-size:0;
+      box-shadow:
+        0 0 30px rgba(255,24,78,.9),
+        0 0 60px rgba(255,24,78,.7),
+        0 6px 20px rgba(0,0,0,1);
+      font-size:0;
       position:relative;
       z-index:2;
+      overflow:visible;
     }
-    #start-round-btn:disabled{
-      opacity:.4;box-shadow:none;filter:grayscale(1);
+    #start-round-btn::after{
+      content:"";
+      position:absolute;inset:-14px;
+      border-radius:50%;
+      border:2px solid rgba(255,24,78,.75);
+      box-shadow:
+        0 0 18px rgba(255,24,78,.9),
+        0 0 32px rgba(255,24,78,.7);
+      opacity:.85;
+      animation:pulsePlay 1.4s infinite ease-in-out;
+    }
+    #start-round-btn:disabled::after{
+      opacity:0;
+      animation:none;
+    }
+    @keyframes pulsePlay{
+      0%{transform:scale(1);opacity:.8;}
+      50%{transform:scale(1.08);opacity:.35;}
+      100%{transform:scale(1);opacity:.8;}
     }
 
-    /* Меню */
+    /* ---------- MENU PANEL ---------- */
     #menu-panel{
       position:absolute;top:52px;right:10px;
-      background:rgba(0,0,0,.9);border-radius:16px;
+      background:radial-gradient(circle at top,#1a0710,#05010a);
+      border-radius:16px;
       padding:12px;display:none;flex-direction:column;gap:8px;
       z-index:2100;min-width:190px;
-      backdrop-filter:blur(10px);
-      box-shadow:0 6px 18px rgba(0,0,0,.6);
+      backdrop-filter:blur(14px);
+      border:1px solid rgba(255,24,78,.45);
+      box-shadow:
+        0 0 22px rgba(255,24,78,.7),
+        0 18px 38px rgba(0,0,0,.95);
     }
     #menu-panel.open{display:flex}
     .menu-item{
@@ -353,7 +455,7 @@
     let userBalance=100;
 
     const HERO_X_REL=0.25;
-    const OBJECT_SPEED = 494; // +30% скорости
+    const OBJECT_SPEED = 494;
     const ISLAND_BASE_PROB=0.012;
 
     const BIRD_BASE_PROB  = 0.14 * 3;
@@ -405,7 +507,7 @@
     function resetRound(){
       const w=canvas.width/window.devicePixelRatio;
       const h=canvas.height/window.devicePixelRatio;
-      // Робинзон на 10% меньше (72 -> 65)
+      // Робинзон уменьшен (10%)
       robinson={x:w*HERO_X_REL,y:h*0.5,vy:-170,width:65,height:65};
       gravity=GRAVITY_BASE;
       objects=[];
@@ -727,7 +829,7 @@
       robinson.vy+=gravity*dt;
       robinson.y+=robinson.vy*dt;
 
-      const topLimit=h*0.05; // потолок выше
+      const topLimit=h*0.05;
       if(robinson.y<topLimit){
         robinson.y=topLimit;
         if(robinson.vy<0) robinson.vy=0;
@@ -803,7 +905,7 @@
           multiplier*=val;
           multiplierEl.textContent=multiplier.toFixed(2)+"x";
           statusEl.textContent="Бонус "+o.kind+"!";
-          // подъём после бонуса на 15% меньше: -230 -> -196
+          // подъём после бонуса на 15% меньше (-230 -> -196)
           robinson.vy=-196;
           gravity=Math.max(GRAVITY_BASE*0.8,gravity-20);
           bonusPulse=0.25;
