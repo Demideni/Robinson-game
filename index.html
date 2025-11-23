@@ -223,6 +223,154 @@
     }
     #menu-deposit{background-image:url('assets/btn_deposit.png')}
     #menu-withdraw{background-image:url('assets/btn_withdraw.png')}
+
+    /* ---------- DEPOSIT MODAL ---------- */
+    #deposit-modal{
+      position:fixed;
+      inset:0;
+      z-index:3000;
+      display:none;
+      align-items:center;
+      justify-content:center;
+    }
+    #deposit-modal.open{
+      display:flex;
+    }
+    #deposit-modal .modal-backdrop{
+      position:absolute;
+      inset:0;
+      background:rgba(0,0,0,.7);
+      backdrop-filter:blur(12px);
+    }
+    #deposit-modal .modal-dialog{
+      position:relative;
+      z-index:1;
+      width:90%;
+      max-width:360px;
+      background:radial-gradient(circle at top,#1a0710,#05010a);
+      border-radius:18px;
+      padding:18px 16px 16px;
+      border:1px solid rgba(255,24,78,.55);
+      box-shadow:
+        0 0 24px rgba(255,24,78,.6),
+        0 18px 40px rgba(0,0,0,.95);
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .modal-title{
+      font-size:18px;
+      font-weight:700;
+      margin-bottom:4px;
+      text-align:left;
+      color:#fff;
+      text-shadow:0 2px 6px rgba(0,0,0,.85);
+    }
+    .modal-label{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      font-size:13px;
+      color:#ffb1c6;
+    }
+    .modal-label input{
+      margin-top:2px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.18);
+      padding:8px 12px;
+      font-size:15px;
+      background:rgba(5,0,15,.85);
+      color:#fff;
+      outline:none;
+      box-shadow:0 0 0 1px rgba(0,0,0,.5);
+    }
+    .modal-label input:focus{
+      border-color:#ff184e;
+      box-shadow:
+        0 0 0 1px rgba(255,24,78,.5),
+        0 0 12px rgba(255,24,78,.6);
+    }
+    .modal-hint{
+      font-size:11px;
+      line-height:1.4;
+      opacity:.8;
+      color:#ffb1c6;
+    }
+    .modal-section{
+      margin-top:8px;
+      padding-top:8px;
+      border-top:1px solid rgba(255,255,255,.08);
+    }
+    .modal-subtitle{
+      font-size:12px;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      opacity:.85;
+      margin-bottom:4px;
+      color:#ff7ea2;
+    }
+    .modal-mono{
+      font-family:ui-monospace,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+      font-size:12px;
+      word-break:break-all;
+      padding:8px;
+      border-radius:8px;
+      background:rgba(0,0,0,.6);
+      border:1px solid rgba(255,255,255,.1);
+    }
+    .modal-primary-btn{
+      margin-top:4px;
+      width:100%;
+      border-radius:999px;
+      padding:9px 14px;
+      font-size:14px;
+      font-weight:600;
+      border:none;
+      cursor:pointer;
+      background:linear-gradient(135deg,#ff184e,#ff4b2b);
+      color:#fff;
+      text-shadow:0 1px 2px rgba(0,0,0,.8);
+      box-shadow:
+        0 0 16px rgba(255,24,78,.85),
+        0 4px 12px rgba(0,0,0,1);
+    }
+    .modal-primary-btn:active{
+      transform:scale(.96) translateY(1px);
+      box-shadow:
+        0 0 8px rgba(255,24,78,.7),
+        0 2px 8px rgba(0,0,0,1);
+    }
+    .modal-secondary-btn{
+      margin-top:6px;
+      width:100%;
+      border-radius:999px;
+      padding:7px 12px;
+      font-size:13px;
+      border:1px solid rgba(255,255,255,.24);
+      background:rgba(5,0,15,.9);
+      color:#fff;
+      cursor:pointer;
+    }
+    .modal-secondary-btn:active{
+      transform:scale(.97) translateY(1px);
+    }
+    .modal-error{
+      min-height:14px;
+      font-size:11px;
+      color:#ff5c7a;
+      margin-top:2px;
+    }
+    .modal-close-btn{
+      margin-top:6px;
+      width:100%;
+      border-radius:999px;
+      padding:7px 12px;
+      font-size:13px;
+      border:none;
+      background:rgba(255,255,255,.08);
+      color:#fff;
+      cursor:pointer;
+    }
   </style>
 </head>
 <body>
@@ -273,6 +421,60 @@
     <canvas id="game"></canvas>
   </div>
 
+  <!-- Модальное окно депозита -->
+  <div id="deposit-modal">
+    <div class="modal-backdrop"></div>
+    <div class="modal-dialog">
+      <h2 class="modal-title">Пополнение баланса</h2>
+
+      <label class="modal-label">
+        Сумма депозита
+        <input
+          type="number"
+          id="deposit-amount"
+          min="1"
+          step="1"
+          value="50"
+          inputmode="decimal"
+        />
+      </label>
+
+      <div class="modal-hint">
+        Оплата в криптовалюте через PassimPay. После отправки на адрес баланс будет пополнен автоматически.
+      </div>
+
+      <button id="deposit-create-btn" class="modal-primary-btn">
+        Создать адрес для пополнения
+      </button>
+
+      <div id="deposit-loading" class="modal-hint" style="display:none;">
+        Создаём адрес, подождите...
+      </div>
+
+      <div id="deposit-result" class="modal-section" style="display:none;">
+        <div class="modal-subtitle">Адрес для оплаты</div>
+        <div class="modal-mono" id="deposit-address"></div>
+        <button id="deposit-copy-address" class="modal-secondary-btn">
+          Скопировать адрес
+        </button>
+
+        <div id="deposit-tag-block" style="display:none;margin-top:10px;">
+          <div class="modal-subtitle">Destination Tag / Memo</div>
+          <div class="modal-mono" id="deposit-tag"></div>
+          <button id="deposit-copy-tag" class="modal-secondary-btn">
+            Скопировать тег
+          </button>
+        </div>
+      </div>
+
+      <div id="deposit-error" class="modal-error"></div>
+
+      <button id="deposit-close-btn" class="modal-close-btn">
+        Закрыть
+      </button>
+    </div>
+  </div>
+
   <script>
     const canvas=document.getElementById("game");
     const ctx=canvas.getContext("2d");
@@ -294,6 +496,20 @@
     const menuPanel=document.getElementById("menu-panel");
     const menuDepositBtn=document.getElementById("menu-deposit");
     const menuWithdrawBtn=document.getElementById("menu-withdraw");
+
+    // элементы модалки депозита
+    const depositModal = document.getElementById("deposit-modal");
+    const depositAmountInput = document.getElementById("deposit-amount");
+    const depositCreateBtn = document.getElementById("deposit-create-btn");
+    const depositLoadingEl = document.getElementById("deposit-loading");
+    const depositResultEl = document.getElementById("deposit-result");
+    const depositAddressEl = document.getElementById("deposit-address");
+    const depositTagBlockEl = document.getElementById("deposit-tag-block");
+    const depositTagEl = document.getElementById("deposit-tag");
+    const depositErrorEl = document.getElementById("deposit-error");
+    const depositCloseBtn = document.getElementById("deposit-close-btn");
+    const depositCopyAddressBtn = document.getElementById("deposit-copy-address");
+    const depositCopyTagBtn = document.getElementById("deposit-copy-tag");
 
     // ==== API настройки ====
     const API_BASE = "https://robinson-bet-api.onrender.com";
@@ -547,49 +763,132 @@
       balanceBottomEl.textContent=userBalance.toFixed(2);
     }
 
-    // ----------- ДЕПОЗИТ ЧЕРЕЗ API -----------
-    async function openDepositDialog(){
+    // ----------- ДЕПОЗИТ ЧЕРЕЗ API: МОДАЛКА -----------
+    function openDepositModal(){
+      if(!playerId){
+        initProfile();
+      }
+      depositErrorEl.textContent = "";
+      depositLoadingEl.style.display = "none";
+      depositResultEl.style.display = "none";
+      depositTagBlockEl.style.display = "none";
+      depositAmountInput.value = "50";
+      depositModal.classList.add("open");
+    }
+
+    function closeDepositModal(){
+      depositModal.classList.remove("open");
+    }
+
+    async function createDeposit(){
       try{
-        if(!playerId) await initProfile();
+        depositErrorEl.textContent = "";
+        depositResultEl.style.display = "none";
+        depositTagBlockEl.style.display = "none";
 
-        const amountStr = prompt("Введите сумму депозита (например 50):","50");
-        if(!amountStr) return;
+        const raw = (depositAmountInput.value || "").toString().replace(",",".");
+        const amountFiat = Number(raw);
 
-        const amountFiat = Number(String(amountStr).replace(",","."));
-        if(!amountFiat || amountFiat<=0){
-          alert("Некорректная сумма");
+        if(!amountFiat || amountFiat <= 0){
+          depositErrorEl.textContent = "Введите корректную сумму депозита.";
           return;
+        }
+
+        depositLoadingEl.style.display = "block";
+
+        if(!playerId){
+          await initProfile();
         }
 
         const paymentId = 10; // ID валюты в PassimPay (пока жёстко)
 
-        const res = await fetch(API_BASE + "/api/deposit/create",{
+        const res = await fetch(API_BASE + "/api/deposit/create", {
           method:"POST",
           headers:{"Content-Type":"application/json"},
           body:JSON.stringify({
-            userId:playerId,
+            userId: playerId,
             amountFiat,
             paymentId
           })
         });
 
         const data = await res.json();
+        depositLoadingEl.style.display = "none";
 
         if(!res.ok || data.error){
           console.error("Deposit error:",data);
-          alert("Ошибка при создании депозита: " + (data.error || res.status));
+          depositErrorEl.textContent = data.error || ("Ошибка: " + res.status);
           return;
         }
 
-        let msg = `Отправьте ${amountFiat.toFixed(2)} на адрес:\n\n${data.address}`;
+        depositAddressEl.textContent = data.address || "";
+        depositResultEl.style.display = "block";
+
         if(data.destinationTag){
-          msg += `\n\nDestination Tag / Memo:\n${data.destinationTag}`;
+          depositTagEl.textContent = data.destinationTag;
+          depositTagBlockEl.style.display = "block";
+        }else{
+          depositTagBlockEl.style.display = "none";
         }
-        alert(msg);
+
       }catch(e){
-        console.error("openDepositDialog error:",e);
-        alert("Не удалось создать депозит. Попробуйте позже.");
+        console.error("createDeposit error:",e);
+        depositLoadingEl.style.display = "none";
+        depositErrorEl.textContent = "Не удалось создать депозит. Попробуйте позже.";
       }
+    }
+
+    function copyToClipboard(text){
+      if(!text) return;
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(()=>{
+          depositErrorEl.textContent = "Скопировано!";
+          setTimeout(()=>{ depositErrorEl.textContent = ""; }, 1200);
+        }).catch(()=>{
+          depositErrorEl.textContent = "Не удалось скопировать.";
+        });
+      }else{
+        const tmp = document.createElement("textarea");
+        tmp.value = text;
+        document.body.appendChild(tmp);
+        tmp.select();
+        try{ document.execCommand("copy"); }catch(_){}
+        document.body.removeChild(tmp);
+        depositErrorEl.textContent = "Скопировано!";
+        setTimeout(()=>{ depositErrorEl.textContent = ""; }, 1200);
+      }
+    }
+
+    if(depositCreateBtn){
+      depositCreateBtn.addEventListener("click",(e)=>{
+        e.preventDefault();
+        createDeposit();
+      });
+    }
+    if(depositCloseBtn){
+      depositCloseBtn.addEventListener("click",(e)=>{
+        e.preventDefault();
+        closeDepositModal();
+      });
+    }
+    if(depositCopyAddressBtn){
+      depositCopyAddressBtn.addEventListener("click",(e)=>{
+        e.preventDefault();
+        copyToClipboard(depositAddressEl.textContent.trim());
+      });
+    }
+    if(depositCopyTagBtn){
+      depositCopyTagBtn.addEventListener("click",(e)=>{
+        e.preventDefault();
+        copyToClipboard(depositTagEl.textContent.trim());
+      });
+    }
+    if(depositModal){
+      depositModal.addEventListener("click",(e)=>{
+        if(e.target === depositModal){
+          closeDepositModal();
+        }
+      });
     }
 
     // Меню
@@ -604,7 +903,7 @@
     });
     menuDepositBtn.addEventListener("click",(e)=>{
       e.preventDefault();
-      openDepositDialog();
+      openDepositModal();
     });
     menuWithdrawBtn.addEventListener("click",()=>{
       const amountStr=prompt("Вывести баланс (монеты):");
@@ -631,106 +930,103 @@
       autoStatusEl.textContent=autoPlay?"On":"Off";
     });
 
-  async function startRound(){
-  if(!allLoaded) return;
+    async function startRound(){
+      if(!allLoaded) return;
 
-  try {
-    if (!playerId) {
-      statusEl.textContent = "Загружаю профиль...";
-      await initProfile();
-    }
+      try {
+        if (!playerId) {
+          statusEl.textContent = "Загружаю профиль...";
+          await initProfile();
+        }
 
-    getAudioCtx();
+        getAudioCtx();
 
-    // Запрос на сервер: начать раунд / списать ставку
-    const res = await fetch(API_BASE + "/api/bet/start", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        playerId,
-        bet: baseBet
-      })
-    });
+        const res = await fetch(API_BASE + "/api/bet/start", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            playerId,
+            bet: baseBet
+          })
+        });
 
-    const data = await res.json();
+        const data = await res.json();
 
-    if (!res.ok || data.error) {
-      console.error("bet/start error:", data);
-      statusEl.textContent = data.error || "Ошибка при приёме ставки";
-      return;
-    }
+        if (!res.ok || data.error) {
+          console.error("bet/start error:", data);
+          statusEl.textContent = data.error || "Ошибка при приёме ставки";
+          return;
+        }
 
-    // Сохраняем ID раунда и новый баланс
-    currentRoundId = data.roundId || null;
-    if (typeof data.balance === "number") {
-      userBalance = data.balance;
-      updateBalanceUI();
-    }
-
-    // Локальная статистика RTP (по желанию)
-    totalBet += baseBet;
-
-    resetRound();
-    state = "flying";
-    statusEl.textContent = "Робинзон в полёте...";
-    startBtn.disabled = true;
-
-  } catch (err) {
-    console.error("startRound fetch error:", err);
-    statusEl.textContent = "Сервер недоступен, ставка не принята.";
-  }
-}
-    startBtn.addEventListener("click",()=>{
-      if(state==="idle"||state==="won"||state==="lost") startRound();
-    });
-
-async function finishRound(result){
-  let winAmount = 0;
-
-  try {
-    if (currentRoundId && playerId) {
-      const res = await fetch(API_BASE + "/api/bet/finish", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          playerId,
-          roundId: currentRoundId,
-          result,
-          multiplier
-        })
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
+        currentRoundId = data.roundId || null;
         if (typeof data.balance === "number") {
           userBalance = data.balance;
           updateBalanceUI();
         }
-        winAmount = Number(data.win || 0);
-      } else {
-        console.warn("bet/finish error:", data);
+
+        totalBet += baseBet;
+
+        resetRound();
+        state = "flying";
+        statusEl.textContent = "Робинзон в полёте...";
+        startBtn.disabled = true;
+
+      } catch (err) {
+        console.error("startRound fetch error:", err);
+        statusEl.textContent = "Сервер недоступен, ставка не принята.";
       }
     }
-  } catch (err) {
-    console.error("finishRound fetch error:", err);
-  }
 
-  currentRoundId = null;
+    startBtn.addEventListener("click",()=>{
+      if(state==="idle"||state==="won"||state==="lost") startRound();
+    });
 
-  // Локальная статистика (для RTP и истории)
-  if (result === "won") {
-    totalPayout += winAmount;
-  }
+    async function finishRound(result){
+      let winAmount = 0;
 
-  roundHistory.unshift({ result, bet: baseBet, multiplier, win: winAmount });
-  if (roundHistory.length > 50) roundHistory.pop();
-  updateHistoryUI();
-  startBtn.disabled = false;
+      try {
+        if (currentRoundId && playerId) {
+          const res = await fetch(API_BASE + "/api/bet/finish", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              playerId,
+              roundId: currentRoundId,
+              result,
+              multiplier
+            })
+          });
 
-  const rtp = getCurrentRTP() * 100;
-  console.log(`RTP (локальный): ${rtp.toFixed(1)}% (target ${(TARGET_RTP*100).toFixed(0)}%)`);
-}
+          const data = await res.json();
+
+          if (res.ok) {
+            if (typeof data.balance === "number") {
+              userBalance = data.balance;
+              updateBalanceUI();
+            }
+            winAmount = Number(data.win || 0);
+          } else {
+            console.warn("bet/finish error:", data);
+          }
+        }
+      } catch (err) {
+        console.error("finishRound fetch error:", err);
+      }
+
+      currentRoundId = null;
+
+      if (result === "won") {
+        totalPayout += winAmount;
+      }
+
+      roundHistory.unshift({ result, bet: baseBet, multiplier, win: winAmount });
+      if (roundHistory.length > 50) roundHistory.pop();
+      updateHistoryUI();
+      startBtn.disabled = false;
+
+      const rtp = getCurrentRTP() * 100;
+      console.log(`RTP (локальный): ${rtp.toFixed(1)}% (target ${(TARGET_RTP*100).toFixed(0)}%)`);
+    }
 
     function getLastOfType(type){
       for(let i=objects.length-1;i>=0;i--){
