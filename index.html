@@ -145,7 +145,6 @@
       padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px));
       z-index:2000;pointer-events:auto;
       backdrop-filter:blur(16px);
-      /* border-top убран, чтобы не было красной полоски */
       box-shadow:0 -10px 30px rgba(0,0,0,.95);
     }
     #bottom-ui,#bottom-ui *{
@@ -166,7 +165,7 @@
     }
     #bottom-bet,#auto-toggle{cursor:pointer}
 
-    /* ---------- PLAY BUTTON (Pulz glow) ---------- */
+    /* ---------- PLAY BUTTON ---------- */
     #start-round-btn{
       width:128px;height:128px;padding:0;border-radius:50%;
       background:url('assets/btn_play.png') center no-repeat;
@@ -201,31 +200,77 @@
       100%{transform:scale(1);opacity:.8;}
     }
 
-    /* ---------- MENU PANEL ---------- */
+    /* ---------- MAIN MENU (CENTERED) ---------- */
     #menu-panel{
-      position:absolute;top:52px;right:10px;
+      position:fixed;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index:2500;
+      background:rgba(0,0,0,.6);
+      backdrop-filter:blur(12px);
+    }
+    #menu-panel.open{
+      display:flex;
+    }
+    #menu-inner{
+      width:80%;
+      max-width:280px;
       background:radial-gradient(circle at top,#1a0710,#05010a);
-      border-radius:16px;
-      padding:12px;display:none;flex-direction:column;gap:8px;
-      z-index:2100;min-width:190px;
-      backdrop-filter:blur(14px);
-      border:1px solid rgba(255,24,78,.45);
+      border-radius:18px;
+      padding:14px 14px 12px;
+      border:1px solid rgba(255,24,78,.55);
       box-shadow:
-        0 0 22px rgba(255,24,78,.7),
-        0 18px 38px rgba(0,0,0,.95);
+        0 0 24px rgba(255,24,78,.6),
+        0 18px 40px rgba(0,0,0,.95);
+      display:flex;
+      flex-direction:column;
+      gap:10px;
     }
-    #menu-panel.open{display:flex}
+    #menu-title{
+      font-size:16px;
+      font-weight:700;
+      margin-bottom:4px;
+      text-align:center;
+      color:#fff;
+      text-shadow:0 2px 6px rgba(0,0,0,.85);
+    }
     .menu-item{
-      width:180px;height:48px;padding:0;border-radius:999px;
-      background-position:center;background-repeat:no-repeat;
-      background-size:100% 100%;box-shadow:none;font-size:0;
-      background-color:transparent;
+      width:100%;
+      padding:10px 14px;
+      border-radius:999px;
+      font-size:14px;
+      font-weight:600;
+      border:none;
+      cursor:pointer;
+      background:linear-gradient(135deg,#ff184e,#ff4b2b);
+      color:#fff;
+      text-shadow:0 1px 2px rgba(0,0,0,.8);
+      box-shadow:
+        0 0 14px rgba(255,24,78,.8),
+        0 4px 10px rgba(0,0,0,1);
     }
-    #menu-deposit{background-image:url('assets/btn_deposit.png')}
-    #menu-withdraw{background-image:url('assets/btn_withdraw.png')}
+    .menu-item.secondary{
+      background:rgba(5,0,15,.9);
+      box-shadow:0 2px 8px rgba(0,0,0,.9);
+      border:1px solid rgba(255,255,255,.2);
+    }
+    #menu-close{
+      margin-top:4px;
+      width:100%;
+      padding:7px 12px;
+      border-radius:999px;
+      font-size:13px;
+      border:none;
+      background:rgba(255,255,255,.08);
+      color:#fff;
+      cursor:pointer;
+    }
 
-    /* ---------- DEPOSIT MODAL ---------- */
-    #deposit-modal{
+    /* ---------- DEPOSIT & WITHDRAW MODALS ---------- */
+    #deposit-modal,
+    #withdraw-modal{
       position:fixed;
       inset:0;
       z-index:3000;
@@ -233,16 +278,19 @@
       align-items:center;
       justify-content:center;
     }
-    #deposit-modal.open{
+    #deposit-modal.open,
+    #withdraw-modal.open{
       display:flex;
     }
-    #deposit-modal .modal-backdrop{
+    #deposit-modal .modal-backdrop,
+    #withdraw-modal .modal-backdrop{
       position:absolute;
       inset:0;
       background:rgba(0,0,0,.7);
       backdrop-filter:blur(12px);
     }
-    #deposit-modal .modal-dialog{
+    #deposit-modal .modal-dialog,
+    #withdraw-modal .modal-dialog{
       position:relative;
       z-index:1;
       width:90%;
@@ -394,10 +442,14 @@
     <div id="status-text">Сделай ставку и нажми ▶</div>
   </div>
 
-  <!-- Меню -->
+  <!-- Центрированное меню -->
   <div id="menu-panel">
-    <button class="menu-item" id="menu-deposit">Deposit</button>
-    <button class="menu-item" id="menu-withdraw">Withdraw</button>
+    <div id="menu-inner">
+      <div id="menu-title">Меню</div>
+      <button class="menu-item" id="menu-deposit">Депозит</button>
+      <button class="menu-item secondary" id="menu-withdraw">Вывод средств</button>
+      <button id="menu-close">Закрыть</button>
+    </div>
   </div>
 
   <!-- Нижнее табло -->
@@ -475,6 +527,63 @@
     </div>
   </div>
 
+  <!-- Модальное окно вывода -->
+  <div id="withdraw-modal">
+    <div class="modal-backdrop"></div>
+    <div class="modal-dialog">
+      <h2 class="modal-title">Вывод средств</h2>
+
+      <div class="modal-hint">
+        Текущий баланс: <span id="withdraw-current-balance">0.00</span> монет.
+      </div>
+
+      <label class="modal-label">
+        Сумма к выводу
+        <input
+          type="number"
+          id="withdraw-amount"
+          min="1"
+          step="1"
+          value="50"
+          inputmode="decimal"
+        />
+      </label>
+
+      <label class="modal-label">
+        Ваш крипто-адрес (для прототипа)
+        <input
+          type="text"
+          id="withdraw-address"
+          placeholder="Вставьте адрес кошелька"
+        />
+      </label>
+
+      <div class="modal-hint">
+        В прототипе заявка создаётся локально — баланс списывается сразу, а обработка
+        вывода будет на стороне оператора.
+      </div>
+
+      <button id="withdraw-create-btn" class="modal-primary-btn">
+        Создать заявку на вывод
+      </button>
+
+      <div id="withdraw-loading" class="modal-hint" style="display:none;">
+        Обрабатываем запрос...
+      </div>
+
+      <div id="withdraw-result" class="modal-section" style="display:none;">
+        <div class="modal-subtitle">Заявка создана</div>
+        <div class="modal-mono" id="withdraw-result-text"></div>
+      </div>
+
+      <div id="withdraw-error" class="modal-error"></div>
+
+      <button id="withdraw-close-btn" class="modal-close-btn">
+        Закрыть
+      </button>
+    </div>
+  </div>
+
   <script>
     const canvas=document.getElementById("game");
     const ctx=canvas.getContext("2d");
@@ -494,8 +603,10 @@
 
     const menuBtn=document.getElementById("menu-btn");
     const menuPanel=document.getElementById("menu-panel");
+    const menuInner=document.getElementById("menu-inner");
     const menuDepositBtn=document.getElementById("menu-deposit");
     const menuWithdrawBtn=document.getElementById("menu-withdraw");
+    const menuCloseBtn=document.getElementById("menu-close");
 
     // элементы модалки депозита
     const depositModal = document.getElementById("deposit-modal");
@@ -510,6 +621,18 @@
     const depositCloseBtn = document.getElementById("deposit-close-btn");
     const depositCopyAddressBtn = document.getElementById("deposit-copy-address");
     const depositCopyTagBtn = document.getElementById("deposit-copy-tag");
+
+    // элементы модалки вывода
+    const withdrawModal = document.getElementById("withdraw-modal");
+    const withdrawCurrentBalanceEl = document.getElementById("withdraw-current-balance");
+    const withdrawAmountInput = document.getElementById("withdraw-amount");
+    const withdrawAddressInput = document.getElementById("withdraw-address");
+    const withdrawCreateBtn = document.getElementById("withdraw-create-btn");
+    const withdrawLoadingEl = document.getElementById("withdraw-loading");
+    const withdrawResultEl = document.getElementById("withdraw-result");
+    const withdrawResultTextEl = document.getElementById("withdraw-result-text");
+    const withdrawErrorEl = document.getElementById("withdraw-error");
+    const withdrawCloseBtn = document.getElementById("withdraw-close-btn");
 
     // ==== API настройки ====
     const API_BASE = "https://robinson-bet-api.onrender.com";
@@ -761,6 +884,9 @@
     function updateBalanceUI(){
       balanceEl.textContent=userBalance.toFixed(2);
       balanceBottomEl.textContent=userBalance.toFixed(2);
+      if(withdrawCurrentBalanceEl){
+        withdrawCurrentBalanceEl.textContent = userBalance.toFixed(2);
+      }
     }
 
     // ----------- ДЕПОЗИТ ЧЕРЕЗ API: МОДАЛКА -----------
@@ -891,31 +1017,108 @@
       });
     }
 
-    // Меню
-    menuBtn.addEventListener("click",e=>{
-      e.stopPropagation();
-      menuPanel.classList.toggle("open");
-    });
-    document.addEventListener("click",e=>{
-      if(!menuPanel.contains(e.target)&&e.target!==menuBtn){
-        // можно закрывать меню, если нужно
+    // ----------- ВЫВОД СРЕДСТВ: МОДАЛКА -----------
+    function openWithdrawModal(){
+      if(!playerId){
+        initProfile();
       }
-    });
-    menuDepositBtn.addEventListener("click",(e)=>{
-      e.preventDefault();
-      openDepositModal();
-    });
-    menuWithdrawBtn.addEventListener("click",()=>{
-      const amountStr=prompt("Вывести баланс (монеты):");
-      const amount=parseFloat(amountStr||"0");
-      if(!amount||amount<=0) return;
-      if(amount>userBalance){
-        alert("Недостаточно средств для вывода");
+      withdrawErrorEl.textContent = "";
+      withdrawLoadingEl.style.display = "none";
+      withdrawResultEl.style.display = "none";
+      withdrawAmountInput.value = Math.max(1, Math.min(userBalance, 50)).toFixed(2);
+      withdrawAddressInput.value = "";
+      if(withdrawCurrentBalanceEl){
+        withdrawCurrentBalanceEl.textContent = userBalance.toFixed(2);
+      }
+      withdrawModal.classList.add("open");
+    }
+
+    function closeWithdrawModal(){
+      withdrawModal.classList.remove("open");
+    }
+
+    async function createWithdraw(){
+      withdrawErrorEl.textContent = "";
+      withdrawResultEl.style.display = "none";
+
+      const rawAmount = (withdrawAmountInput.value || "").toString().replace(",",".");
+      const amount = Number(rawAmount);
+
+      if(!amount || amount <= 0){
+        withdrawErrorEl.textContent = "Введите корректную сумму.";
         return;
       }
-      userBalance-=amount;
-      updateBalanceUI();
-      statusEl.textContent="Баланс выведен";
+      if(amount > userBalance){
+        withdrawErrorEl.textContent = "Недостаточно средств на балансе.";
+        return;
+      }
+
+      const addr = (withdrawAddressInput.value || "").trim();
+      if(!addr){
+        withdrawErrorEl.textContent = "Введите адрес кошелька для вывода.";
+        return;
+      }
+
+      withdrawLoadingEl.style.display = "block";
+
+      // В прототипе просто списываем баланс локально и показываем текст.
+      setTimeout(()=>{
+        withdrawLoadingEl.style.display = "none";
+
+        userBalance -= amount;
+        if(userBalance < 0) userBalance = 0;
+        updateBalanceUI();
+
+        const txt = `Запрос на вывод ${amount.toFixed(2)} монет создан.\n` +
+                    `Адрес: ${addr}\n\nВ реальном режиме этот запрос будет обработан оператором.`;
+        withdrawResultTextEl.textContent = txt;
+        withdrawResultEl.style.display = "block";
+      }, 500);
+    }
+
+    if(withdrawCreateBtn){
+      withdrawCreateBtn.addEventListener("click",(e)=>{
+        e.preventDefault();
+        createWithdraw();
+      });
+    }
+    if(withdrawCloseBtn){
+      withdrawCloseBtn.addEventListener("click",(e)=>{
+        e.preventDefault();
+        closeWithdrawModal();
+      });
+    }
+    if(withdrawModal){
+      withdrawModal.addEventListener("click",(e)=>{
+        if(e.target === withdrawModal){
+          closeWithdrawModal();
+        }
+      });
+    }
+
+    // ----------- МЕНЮ ----------- 
+    menuBtn.addEventListener("click",e=>{
+      e.stopPropagation();
+      menuPanel.classList.add("open");
+    });
+    menuCloseBtn.addEventListener("click",()=>{
+      menuPanel.classList.remove("open");
+    });
+    menuPanel.addEventListener("click",(e)=>{
+      if(e.target === menuPanel){
+        menuPanel.classList.remove("open");
+      }
+    });
+
+    menuDepositBtn.addEventListener("click",(e)=>{
+      e.preventDefault();
+      menuPanel.classList.remove("open");
+      openDepositModal();
+    });
+    menuWithdrawBtn.addEventListener("click",(e)=>{
+      e.preventDefault();
+      menuPanel.classList.remove("open");
+      openWithdrawModal();
     });
 
     document.getElementById("bottom-bet").addEventListener("click",()=>{
@@ -1051,7 +1254,7 @@
       const w=canvas.width/window.devicePixelRatio;
       const h=canvas.height/window.devicePixelRatio;
       const size=58;
-      const minY=h*PLAYFIELD_TOP_REL + 20; // не залетает под верхний бар
+      const minY=h*PLAYFIELD_TOP_REL + 20;
       const maxY=h*0.78;
       const y=minY+Math.random()*(maxY-minY);
       const x=w+size*0.8;
@@ -1098,7 +1301,7 @@
       const w=canvas.width/window.devicePixelRatio;
       const h=canvas.height/window.devicePixelRatio;
       const size=38;
-      const minY=h*PLAYFIELD_TOP_REL + 20; // бонусы тоже не в баре
+      const minY=h*PLAYFIELD_TOP_REL + 20;
       const maxY=h*0.75;
       const y=minY+Math.random()*(maxY-minY);
       const x=w+size*0.6;
@@ -1173,7 +1376,6 @@
       const h=canvas.height/window.devicePixelRatio;
       const waterY=h*WATER_LINE_REL;
 
-      // частицы воды
       for(const p of splashParticles){
         p.x+=p.vx*dt;
         p.y+=p.vy*dt;
@@ -1182,7 +1384,6 @@
       }
       splashParticles=splashParticles.filter(p=>p.life<p.maxLife);
 
-      // частицы бонуса
       for(const p of bonusParticles){
         p.x+=p.vx*dt;
         p.y+=p.vy*dt;
@@ -1191,7 +1392,6 @@
       }
       bonusParticles=bonusParticles.filter(p=>p.life<p.maxLife);
 
-      // всплывающие надписи
       for(const ft of floatingTexts){
         ft.life+=dt;
         ft.y+=ft.vy*dt;
@@ -1224,14 +1424,12 @@
       robinson.vy+=gravity*dt;
       robinson.y+=robinson.vy*dt;
 
-      // Верхний предел — не пускаем в зону верхнего бара
       const topLimit=h*PLAYFIELD_TOP_REL;
       if(robinson.y<topLimit){
         robinson.y=topLimit;
         if(robinson.vy<0) robinson.vy=0;
       }
 
-      // вода = проигрыш
       if(robinson.y+robinson.height/2>=waterY){
         state="lost";
         statusEl.textContent="Робинзон упал в воду";
@@ -1301,11 +1499,10 @@
           multiplier*=val;
           multiplierEl.textContent=multiplier.toFixed(2)+"x";
           statusEl.textContent="Бонус "+o.kind+"!";
-          robinson.vy=-196; // взлёт после бонуса
+          robinson.vy=-196;
           gravity=Math.max(GRAVITY_BASE*0.8,gravity-20);
           bonusPulse=0.25;
           addBonusParticles(o.x,o.y);
-          // всплывающая надпись бонуса — белый текст с чёрной окантовкой
           spawnFloatingText(o.kind.toUpperCase(), robinson.x + 70, robinson.y - 40);
           o._dead=true;
           playBonusSound();
@@ -1314,7 +1511,6 @@
 
       objects=objects.filter(o=>o.x+o.w>-50 && !o._dead);
 
-      // Камера следует за Робинзоном мягко
       cameraY=-(robinson.y-h*0.55)*0.11;
       cameraLockY=null;
     }
@@ -1397,7 +1593,6 @@
       ctx.restore();
     }
 
-    // всплывающие надписи бонусов: белый текст с чёрной окантовкой
     function drawFloatingTexts(){
       const h=canvas.height/window.devicePixelRatio;
       const viewOffsetY=-h*VIEW_OFFSET_REL;
@@ -1441,7 +1636,6 @@
       ctx.restore();
     }
 
-    // сумма потенциального выигрыша над Робинзоном: белый текст с чёрной окантовкой
     function drawWinAboveHero(){
       if(!heroVisible) return;
       const h=canvas.height/window.devicePixelRatio;
