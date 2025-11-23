@@ -298,6 +298,7 @@
     // ==== API настройки ====
     const API_BASE = "https://robinson-bet-api.onrender.com";
     let playerId = null;
+    let currentRoundId = null;
 
     // скрываем заставку через 4 сек и показываем нижнее меню
     setTimeout(()=>{
@@ -630,41 +631,106 @@
       autoStatusEl.textContent=autoPlay?"On":"Off";
     });
 
-    function startRound(){
-      if(!allLoaded) return;
-      if(userBalance<baseBet){
-        statusEl.textContent="Недостаточно монет. Пополни баланс.";
-        return;
-      }
-      getAudioCtx();
-      totalBet+=baseBet;
-      userBalance-=baseBet;
-      updateBalanceUI();
-      resetRound();
-      state="flying";
-      statusEl.textContent="Робинзон в полёте...";
-      startBtn.disabled=true;
+  async function startRound(){
+  if(!allLoaded) return;
+
+  try {
+    if (!playerId) {
+      statusEl.textContent = "Загружаю профиль...";
+      await initProfile();
     }
+
+    getAudioCtx();
+
+    // Запрос на сервер: начать раунд / списать ставку
+    const res = await fetch(API_BASE + "/api/bet/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        playerId,
+        bet: baseBet
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || data.error) {
+      console.error("bet/start error:", data);
+      statusEl.textContent = data.error || "Ошибка при приёме ставки";
+      return;
+    }
+
+    // Сохраняем ID раунда и новый баланс
+    currentRoundId = data.roundId || null;
+    if (typeof data.balance === "number") {
+      userBalance = data.balance;
+      updateBalanceUI();
+    }
+
+    // Локальная статистика RTP (по желанию)
+    totalBet += baseBet;
+
+    resetRound();
+    state = "flying";
+    statusEl.textContent = "Робинзон в полёте...";
+    startBtn.disabled = true;
+
+  } catch (err) {
+    console.error("startRound fetch error:", err);
+    statusEl.textContent = "Сервер недоступен, ставка не принята.";
+  }
+}
     startBtn.addEventListener("click",()=>{
       if(state==="idle"||state==="won"||state==="lost") startRound();
     });
 
-    function finishRound(result){
-      let winAmount=0;
-      if(result==="won"){
-        winAmount=baseBet*multiplier;
-        userBalance+=winAmount;
-        totalPayout+=winAmount;
-        updateBalanceUI();
-      }
-      roundHistory.unshift({result,bet:baseBet,multiplier,win:winAmount});
-      if(roundHistory.length>50) roundHistory.pop();
-      updateHistoryUI();
-      startBtn.disabled=false;
+async function finishRound(result){
+  let winAmount = 0;
 
-      const rtp=getCurrentRTP()*100;
-      console.log(`RTP: ${rtp.toFixed(1)}% (target ${(TARGET_RTP*100).toFixed(0)}%)`);
+  try {
+    if (currentRoundId && playerId) {
+      const res = await fetch(API_BASE + "/api/bet/finish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          playerId,
+          roundId: currentRoundId,
+          result,
+          multiplier
+        })
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        if (typeof data.balance === "number") {
+          userBalance = data.balance;
+          updateBalanceUI();
+        }
+        winAmount = Number(data.win || 0);
+      } else {
+        console.warn("bet/finish error:", data);
+      }
     }
+  } catch (err) {
+    console.error("finishRound fetch error:", err);
+  }
+
+  currentRoundId = null;
+
+  // Локальная статистика (для RTP и истории)
+  if (result === "won") {
+    totalPayout += winAmount;
+  }
+
+  roundHistory.unshift({ result, bet: baseBet, multiplier, win: winAmount });
+  if (roundHistory.length > 50) roundHistory.pop();
+  updateHistoryUI();
+  startBtn.disabled = false;
+
+  const rtp = getCurrentRTP() * 100;
+  console.log(`RTP (локальный): ${rtp.toFixed(1)}% (target ${(TARGET_RTP*100).toFixed(0)}%)`);
+}
 
     function getLastOfType(type){
       for(let i=objects.length-1;i>=0;i--){
