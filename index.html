@@ -295,6 +295,10 @@
     const menuDepositBtn=document.getElementById("menu-deposit");
     const menuWithdrawBtn=document.getElementById("menu-withdraw");
 
+    // ==== API настройки ====
+    const API_BASE = "https://robinson-bet-api.onrender.com";
+    let playerId = null;
+
     // скрываем заставку через 4 сек и показываем нижнее меню
     setTimeout(()=>{
       if(splash && !splash.classList.contains("hidden")){
@@ -347,7 +351,7 @@
       }
       allLoaded=true;
       statusEl.textContent="Готово к игре";
-      initProfile();
+      await initProfile();
     })();
 
     // -------- Web Audio звуки --------
@@ -513,16 +517,78 @@
       });
     }
 
-    function initProfile(){
-      userBalance=100;
-      updateBalanceUI();
-      statusEl.textContent="Демо-режим: у тебя 100 монет";
+    async function initProfile(){
+      try{
+        const res = await fetch(API_BASE + "/api/session",{method:"GET"});
+        if(!res.ok) throw new Error("HTTP "+res.status);
+        const data = await res.json();
+        playerId = data.playerId || "demo-player-1";
+        userBalance = Number(data.balance ?? 0);
+        if(!Number.isFinite(userBalance)) userBalance = 0;
+        statusEl.textContent = "";
+      }catch(err){
+        console.error("initProfile error:",err);
+        if(!playerId) playerId="demo-player-1";
+        if(!Number.isFinite(userBalance) || userBalance<=0){
+          userBalance=100;
+          statusEl.textContent="Демо-режим: у тебя 100 монет";
+        }else{
+          statusEl.textContent="Сервер недоступен, баланс локальный";
+        }
+      }
       betBottomEl.textContent=baseBet.toFixed(2);
+      updateBalanceUI();
       updateHistoryUI();
     }
+
     function updateBalanceUI(){
       balanceEl.textContent=userBalance.toFixed(2);
       balanceBottomEl.textContent=userBalance.toFixed(2);
+    }
+
+    // ----------- ДЕПОЗИТ ЧЕРЕЗ API -----------
+    async function openDepositDialog(){
+      try{
+        if(!playerId) await initProfile();
+
+        const amountStr = prompt("Введите сумму депозита (например 50):","50");
+        if(!amountStr) return;
+
+        const amountFiat = Number(String(amountStr).replace(",","."));
+        if(!amountFiat || amountFiat<=0){
+          alert("Некорректная сумма");
+          return;
+        }
+
+        const paymentId = 10; // ID валюты в PassimPay (пока жёстко)
+
+        const res = await fetch(API_BASE + "/api/deposit/create",{
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({
+            userId:playerId,
+            amountFiat,
+            paymentId
+          })
+        });
+
+        const data = await res.json();
+
+        if(!res.ok || data.error){
+          console.error("Deposit error:",data);
+          alert("Ошибка при создании депозита: " + (data.error || res.status));
+          return;
+        }
+
+        let msg = `Отправьте ${amountFiat.toFixed(2)} на адрес:\n\n${data.address}`;
+        if(data.destinationTag){
+          msg += `\n\nDestination Tag / Memo:\n${data.destinationTag}`;
+        }
+        alert(msg);
+      }catch(e){
+        console.error("openDepositDialog error:",e);
+        alert("Не удалось создать депозит. Попробуйте позже.");
+      }
     }
 
     // Меню
@@ -535,13 +601,9 @@
         // можно закрывать меню, если нужно
       }
     });
-    menuDepositBtn.addEventListener("click",()=>{
-      const amountStr=prompt("Пополнить баланс (монеты):");
-      const amount=parseFloat(amountStr||"0");
-      if(!amount||amount<=0) return;
-      userBalance+=amount;
-      updateBalanceUI();
-      statusEl.textContent="Баланс пополнен";
+    menuDepositBtn.addEventListener("click",(e)=>{
+      e.preventDefault();
+      openDepositDialog();
     });
     menuWithdrawBtn.addEventListener("click",()=>{
       const amountStr=prompt("Вывести баланс (монеты):");
