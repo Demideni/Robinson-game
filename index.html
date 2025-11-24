@@ -70,6 +70,33 @@
       display:flex;gap:6px;justify-content:flex-end;
       pointer-events:auto;padding:0 2px;flex-shrink:0;
     }
+
+    /* Чип профиля */
+    #profile-chip{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:4px 10px;
+      border-radius:999px;
+      background:rgba(5,0,15,.7);
+      border:1px solid rgba(255,255,255,.15);
+      box-shadow:0 2px 8px rgba(0,0,0,.8);
+      font-size:13px;
+      color:#ffb1c6;
+      text-shadow:0 1px 2px rgba(0,0,0,.8);
+      cursor:pointer;
+      max-width:130px;
+    }
+    #profile-chip:hover{
+      background:rgba(255,24,78,.12);
+    }
+    #profile-name{
+      max-width:120px;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+
     #menu-btn{
       width:60px;height:60px;padding:0;border-radius:50%;
       background:url('assets/btn_menu.png') center no-repeat;
@@ -268,9 +295,10 @@
       cursor:pointer;
     }
 
-    /* ---------- DEPOSIT & WITHDRAW MODALS ---------- */
+    /* ---------- DEPOSIT & WITHDRAW & PROFILE MODALS ---------- */
     #deposit-modal,
-    #withdraw-modal{
+    #withdraw-modal,
+    #profile-modal{
       position:fixed;
       inset:0;
       z-index:3000;
@@ -279,18 +307,21 @@
       justify-content:center;
     }
     #deposit-modal.open,
-    #withdraw-modal.open{
+    #withdraw-modal.open,
+    #profile-modal.open{
       display:flex;
     }
     #deposit-modal .modal-backdrop,
-    #withdraw-modal .modal-backdrop{
+    #withdraw-modal .modal-backdrop,
+    #profile-modal .modal-backdrop{
       position:absolute;
       inset:0;
       background:rgba(0,0,0,.7);
       backdrop-filter:blur(12px);
     }
     #deposit-modal .modal-dialog,
-    #withdraw-modal .modal-dialog{
+    #withdraw-modal .modal-dialog,
+    #profile-modal .modal-dialog{
       position:relative;
       z-index:1;
       width:90%;
@@ -431,6 +462,9 @@
   <div id="ui">
     <div id="ui-top">
       <div id="logo">Робинзон</div>
+      <div id="profile-chip">
+        <span id="profile-name">Гость</span>
+      </div>
       <div id="auth-panel">
         <button id="menu-btn" aria-label="Меню"></button>
       </div>
@@ -471,6 +505,50 @@
 
   <div id="canvas-container">
     <canvas id="game"></canvas>
+  </div>
+
+  <!-- Модальное окно профиля -->
+  <div id="profile-modal">
+    <div class="modal-backdrop"></div>
+    <div class="modal-dialog">
+      <h2 class="modal-title">Профиль игрока</h2>
+
+      <label class="modal-label">
+        Никнейм
+        <input
+          type="text"
+          id="profile-nickname"
+          placeholder="Введите имя в игре"
+        />
+      </label>
+
+      <label class="modal-label">
+        Email (опционально)
+        <input
+          type="email"
+          id="profile-email"
+          placeholder="Для уведомлений и входа позже"
+        />
+      </label>
+
+      <div class="modal-hint">
+        Никнейм будет привязан к вашему балансу и депозитам.
+      </div>
+
+      <button id="profile-save-btn" class="modal-primary-btn">
+        Сохранить профиль
+      </button>
+
+      <div id="profile-loading" class="modal-hint" style="display:none;">
+        Сохраняем...
+      </div>
+
+      <div id="profile-error" class="modal-error"></div>
+
+      <button id="profile-close-btn" class="modal-close-btn">
+        Закрыть
+      </button>
+    </div>
   </div>
 
   <!-- Модальное окно депозита -->
@@ -634,10 +712,26 @@
     const withdrawErrorEl = document.getElementById("withdraw-error");
     const withdrawCloseBtn = document.getElementById("withdraw-close-btn");
 
+    // элементы профиля
+    const profileModal = document.getElementById("profile-modal");
+    const profileNicknameInput = document.getElementById("profile-nickname");
+    const profileEmailInput = document.getElementById("profile-email");
+    const profileSaveBtn = document.getElementById("profile-save-btn");
+    const profileCloseBtn = document.getElementById("profile-close-btn");
+    const profileErrorEl = document.getElementById("profile-error");
+    const profileLoadingEl = document.getElementById("profile-loading");
+    const profileChip = document.getElementById("profile-chip");
+    const profileNameEl = document.getElementById("profile-name");
+
     // ==== API настройки ====
     const API_BASE = "https://robinson-bet-api.onrender.com";
     let playerId = null;
     let currentRoundId = null;
+
+    let currentProfile = {
+      nickname: null,
+      email: null
+    };
 
     // скрываем заставку через 4 сек и показываем нижнее меню
     setTimeout(()=>{
@@ -857,6 +951,15 @@
       });
     }
 
+    function updateProfileNameUI(){
+      if(!profileNameEl) return;
+      if(currentProfile.nickname && currentProfile.nickname.trim()){
+        profileNameEl.textContent = currentProfile.nickname;
+      }else{
+        profileNameEl.textContent = "Гость";
+      }
+    }
+
     async function initProfile(){
       try{
         const res = await fetch(API_BASE + "/api/session",{method:"GET"});
@@ -865,6 +968,10 @@
         playerId = data.playerId || "demo-player-1";
         userBalance = Number(data.balance ?? 0);
         if(!Number.isFinite(userBalance)) userBalance = 0;
+
+        currentProfile.nickname = data.nickname || null;
+        currentProfile.email = data.email || null;
+
         statusEl.textContent = "";
       }catch(err){
         console.error("initProfile error:",err);
@@ -878,6 +985,7 @@
       }
       betBottomEl.textContent=baseBet.toFixed(2);
       updateBalanceUI();
+      updateProfileNameUI();
       updateHistoryUI();
     }
 
@@ -886,6 +994,71 @@
       balanceBottomEl.textContent=userBalance.toFixed(2);
       if(withdrawCurrentBalanceEl){
         withdrawCurrentBalanceEl.textContent = userBalance.toFixed(2);
+      }
+    }
+
+    // ----------- ПРОФИЛЬ: МОДАЛКА / API -----------
+    function openProfileModal(){
+      if(!playerId){
+        initProfile();
+      }
+      profileErrorEl.textContent = "";
+      profileLoadingEl.style.display = "none";
+      profileNicknameInput.value = currentProfile.nickname || "";
+      profileEmailInput.value = currentProfile.email || "";
+      profileModal.classList.add("open");
+    }
+
+    function closeProfileModal(){
+      profileModal.classList.remove("open");
+    }
+
+    async function saveProfile(){
+      try{
+        profileErrorEl.textContent = "";
+        profileLoadingEl.style.display = "block";
+
+        const nickname = (profileNicknameInput.value || "").trim();
+        const email = (profileEmailInput.value || "").trim();
+
+        if(!nickname){
+          profileLoadingEl.style.display = "none";
+          profileErrorEl.textContent = "Введите никнейм.";
+          return;
+        }
+
+        if(!playerId){
+          await initProfile();
+        }
+
+        const res = await fetch(API_BASE + "/api/profile/register", {
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({
+            playerId,
+            nickname,
+            email
+          })
+        });
+
+        const data = await res.json();
+        profileLoadingEl.style.display = "none";
+
+        if(!res.ok || data.error){
+          console.error("profile/register error", data);
+          profileErrorEl.textContent = data.error || ("Ошибка: " + res.status);
+          return;
+        }
+
+        currentProfile.nickname = data.nickname || nickname;
+        currentProfile.email = data.email || email;
+        updateProfileNameUI();
+
+        closeProfileModal();
+      }catch(e){
+        console.error("saveProfile error", e);
+        profileLoadingEl.style.display = "none";
+        profileErrorEl.textContent = "Не удалось сохранить профиль. Попробуйте позже.";
       }
     }
 
@@ -1132,6 +1305,33 @@
       autoPlay=!autoPlay;
       autoStatusEl.textContent=autoPlay?"On":"Off";
     });
+
+    // Обработчики профиля
+    if(profileChip){
+      profileChip.addEventListener("click",(e)=>{
+        e.preventDefault();
+        openProfileModal();
+      });
+    }
+    if(profileSaveBtn){
+      profileSaveBtn.addEventListener("click",(e)=>{
+        e.preventDefault();
+        saveProfile();
+      });
+    }
+    if(profileCloseBtn){
+      profileCloseBtn.addEventListener("click",(e)=>{
+        e.preventDefault();
+        closeProfileModal();
+      });
+    }
+    if(profileModal){
+      profileModal.addEventListener("click",(e)=>{
+        if(e.target === profileModal){
+          closeProfileModal();
+        }
+      });
+    }
 
     async function startRound(){
       if(!allLoaded) return;
