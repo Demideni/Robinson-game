@@ -87,6 +87,12 @@
       cursor:pointer;
       max-width:130px;
     }
+    /* Гость — более заметная рамка */
+    #profile-chip.guest{
+      border-color: rgba(255,255,255,.35);
+      background: rgba(5,0,15,.9);
+      color:#ffc6c6;
+    }
     #profile-chip:hover{
       background:rgba(255,24,78,.12);
     }
@@ -462,7 +468,7 @@
   <div id="ui">
     <div id="ui-top">
       <div id="logo">Робинзон</div>
-      <div id="profile-chip">
+      <div id="profile-chip" class="guest">
         <span id="profile-name">Гость</span>
       </div>
       <div id="auth-panel">
@@ -953,10 +959,13 @@
 
     function updateProfileNameUI(){
       if(!profileNameEl) return;
-      if(currentProfile.nickname && currentProfile.nickname.trim()){
+      const hasName = currentProfile.nickname && currentProfile.nickname.trim();
+      if(hasName){
         profileNameEl.textContent = currentProfile.nickname;
+        if(profileChip) profileChip.classList.remove("guest");
       }else{
         profileNameEl.textContent = "Гость";
+        if(profileChip) profileChip.classList.add("guest");
       }
     }
 
@@ -987,6 +996,13 @@
       updateBalanceUI();
       updateProfileNameUI();
       updateHistoryUI();
+
+      // если нет никнейма — сразу предлагаем заполнить профиль
+      if(!currentProfile.nickname){
+        setTimeout(()=> {
+          openProfileModal();
+        }, 600);
+      }
     }
 
     function updateBalanceUI(){
@@ -1064,6 +1080,14 @@
 
     // ----------- ДЕПОЗИТ ЧЕРЕЗ API: МОДАЛКА -----------
     function openDepositModal(){
+      // без регистрации не даём депозит
+      const hasName = currentProfile.nickname && currentProfile.nickname.trim();
+      if(!hasName){
+        statusEl.textContent = "Сначала заполни профиль (никнейм)";
+        openProfileModal();
+        return;
+      }
+
       if(!playerId){
         initProfile();
       }
@@ -1192,6 +1216,13 @@
 
     // ----------- ВЫВОД СРЕДСТВ: МОДАЛКА -----------
     function openWithdrawModal(){
+      const hasName = currentProfile.nickname && currentProfile.nickname.trim();
+      if(!hasName){
+        statusEl.textContent = "Сначала заполни профиль (никнейм)";
+        openProfileModal();
+        return;
+      }
+
       if(!playerId){
         initProfile();
       }
@@ -1335,6 +1366,14 @@
 
     async function startRound(){
       if(!allLoaded) return;
+
+      // блокируем игру без регистрации
+      const hasName = currentProfile.nickname && currentProfile.nickname.trim();
+      if(!hasName){
+        statusEl.textContent = "Сначала заполни профиль (никнейм)";
+        openProfileModal();
+        return;
+      }
 
       try {
         if (!playerId) {
