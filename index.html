@@ -5,6 +5,8 @@
   <title>Робинзон — игра</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#05010a" />
+  <!-- Telegram WebApp SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
 
@@ -87,7 +89,6 @@
       cursor:pointer;
       max-width:130px;
     }
-    /* Гость — более заметная рамка */
     #profile-chip.guest{
       border-color: rgba(255,255,255,.35);
       background: rgba(5,0,15,.9);
@@ -301,10 +302,11 @@
       cursor:pointer;
     }
 
-    /* ---------- DEPOSIT & WITHDRAW & PROFILE MODALS ---------- */
+    /* ---------- DEPOSIT & WITHDRAW & PROFILE & BET MODALS ---------- */
     #deposit-modal,
     #withdraw-modal,
-    #profile-modal{
+    #profile-modal,
+    #bet-modal{
       position:fixed;
       inset:0;
       z-index:3000;
@@ -314,12 +316,14 @@
     }
     #deposit-modal.open,
     #withdraw-modal.open,
-    #profile-modal.open{
+    #profile-modal.open,
+    #bet-modal.open{
       display:flex;
     }
     #deposit-modal .modal-backdrop,
     #withdraw-modal .modal-backdrop,
-    #profile-modal .modal-backdrop{
+    #profile-modal .modal-backdrop,
+    #bet-modal .modal-backdrop{
       position:absolute;
       inset:0;
       background:rgba(0,0,0,.7);
@@ -327,7 +331,8 @@
     }
     #deposit-modal .modal-dialog,
     #withdraw-modal .modal-dialog,
-    #profile-modal .modal-dialog{
+    #profile-modal .modal-dialog,
+    #bet-modal .modal-dialog{
       position:relative;
       z-index:1;
       width:90%;
@@ -358,7 +363,8 @@
       font-size:13px;
       color:#ffb1c6;
     }
-    .modal-label input{
+    .modal-label input,
+    .modal-label select{
       margin-top:2px;
       border-radius:999px;
       border:1px solid rgba(255,255,255,.18);
@@ -369,7 +375,8 @@
       outline:none;
       box-shadow:0 0 0 1px rgba(0,0,0,.5);
     }
-    .modal-label input:focus{
+    .modal-label input:focus,
+    .modal-label select:focus{
       border-color:#ff184e;
       box-shadow:
         0 0 0 1px rgba(255,24,78,.5),
@@ -455,6 +462,35 @@
       background:rgba(255,255,255,.08);
       color:#fff;
       cursor:pointer;
+    }
+
+    /* ---------- BET WHEEL ---------- */
+    .bet-wheel{
+      display:flex;
+      gap:8px;
+      overflow-x:auto;
+      padding:6px 2px 4px;
+      margin:4px -4px 4px;
+    }
+    .bet-option{
+      flex:0 0 auto;
+      min-width:64px;
+      padding:8px 10px;
+      border-radius:999px;
+      text-align:center;
+      font-size:14px;
+      font-weight:600;
+      background:rgba(5,0,15,.9);
+      border:1px solid rgba(255,255,255,.18);
+      box-shadow:0 2px 8px rgba(0,0,0,.8);
+      cursor:pointer;
+      color:#fff;
+      user-select:none;
+    }
+    .bet-option.selected{
+      background:linear-gradient(135deg,#ff184e,#ff4b2b);
+      border-color:rgba(255,255,255,.6);
+      box-shadow:0 0 16px rgba(255,24,78,.8);
     }
   </style>
 </head>
@@ -575,6 +611,16 @@
         />
       </label>
 
+      <label class="modal-label">
+        Криптовалюта
+        <select id="deposit-coin">
+          <option value="10">BTC</option>
+          <option value="20">ETH (ERC20)</option>
+          <option value="71">USDT (TRC20)</option>
+          <option value="70">USDT (ERC20)</option>
+        </select>
+      </label>
+
       <div class="modal-hint">
         Оплата в криптовалюте через PassimPay. После отправки на адрес баланс будет пополнен автоматически.
       </div>
@@ -668,6 +714,34 @@
     </div>
   </div>
 
+  <!-- Модалка выбора ставки -->
+  <div id="bet-modal">
+    <div class="modal-backdrop"></div>
+    <div class="modal-dialog">
+      <h2 class="modal-title">Ставка</h2>
+
+      <div class="bet-wheel">
+        <div class="bet-option" data-value="1">1</div>
+        <div class="bet-option" data-value="2">2</div>
+        <div class="bet-option" data-value="5">5</div>
+        <div class="bet-option" data-value="10">10</div>
+        <div class="bet-option" data-value="20">20</div>
+        <div class="bet-option" data-value="50">50</div>
+        <div class="bet-option" data-value="100">100</div>
+        <div class="bet-option" data-value="200">200</div>
+        <div class="bet-option" data-value="500">500</div>
+        <div class="bet-option" data-value="1000">1000</div>
+      </div>
+
+      <div class="modal-hint">
+        Свайпай по ставкам или нажми, чтобы выбрать.
+      </div>
+
+      <button id="bet-save" class="modal-primary-btn">Сохранить</button>
+      <button id="bet-close" class="modal-close-btn">Отмена</button>
+    </div>
+  </div>
+
   <script>
     const canvas=document.getElementById("game");
     const ctx=canvas.getContext("2d");
@@ -695,6 +769,7 @@
     // элементы модалки депозита
     const depositModal = document.getElementById("deposit-modal");
     const depositAmountInput = document.getElementById("deposit-amount");
+    const depositCoinSelect = document.getElementById("deposit-coin");
     const depositCreateBtn = document.getElementById("deposit-create-btn");
     const depositLoadingEl = document.getElementById("deposit-loading");
     const depositResultEl = document.getElementById("deposit-result");
@@ -729,6 +804,12 @@
     const profileChip = document.getElementById("profile-chip");
     const profileNameEl = document.getElementById("profile-name");
 
+    // элементы модалки ставки
+    const betModal = document.getElementById("bet-modal");
+    const betSaveBtn = document.getElementById("bet-save");
+    const betCloseBtn = document.getElementById("bet-close");
+    const betOptions = Array.from(document.querySelectorAll(".bet-option"));
+
     // ==== API настройки ====
     const API_BASE = "https://robinson-bet-api.onrender.com";
     let playerId = null;
@@ -738,6 +819,10 @@
       nickname: null,
       email: null
     };
+
+    // Telegram WebApp
+    let tg = null;
+    let isTelegram = false;
 
     // скрываем заставку через 4 сек и показываем нижнее меню
     setTimeout(()=>{
@@ -872,8 +957,9 @@
     const OBJECT_SPEED = 494;
     const ISLAND_BASE_PROB=0.012;
 
-    const BIRD_BASE_PROB  = 0.14 * 3;
-    const BONUS_BASE_PROB = 0.14 * 3;
+    // Увеличили: бонусы ×3, птицы ×2
+    const BIRD_BASE_PROB  = 0.14 * 6;   // было *3
+    const BONUS_BASE_PROB = 0.14 * 9;   // было *3
 
     const WATER_LINE_REL=0.8;
     const GRAVITY_BASE=75;
@@ -971,17 +1057,44 @@
 
     async function initProfile(){
       try{
-        const res = await fetch(API_BASE + "/api/session",{method:"GET"});
-        if(!res.ok) throw new Error("HTTP "+res.status);
-        const data = await res.json();
-        playerId = data.playerId || "demo-player-1";
-        userBalance = Number(data.balance ?? 0);
-        if(!Number.isFinite(userBalance)) userBalance = 0;
+        const tgApp = window.Telegram && window.Telegram.WebApp;
+        if(tgApp && tgApp.initDataUnsafe && tgApp.initDataUnsafe.user){
+          // Telegram WebApp режим
+          isTelegram = true;
+          tg = tgApp;
+          if(tg.expand) tg.expand();
 
-        currentProfile.nickname = data.nickname || null;
-        currentProfile.email = data.email || null;
+          const u = tg.initDataUnsafe.user;
+          const tgId = u.id.toString();
+          const username = u.username || u.first_name || "TG_Player";
 
-        statusEl.textContent = "";
+          const res = await fetch(API_BASE + "/api/telegram/webapp/login", {
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({ tgId, username })
+          });
+          if(!res.ok) throw new Error("HTTP "+res.status);
+          const data = await res.json();
+          playerId = data.playerId || tgId;
+          userBalance = Number(data.balance ?? 0);
+          if(!Number.isFinite(userBalance)) userBalance = 0;
+          currentProfile.nickname = data.nickname || username;
+          currentProfile.email = data.email || null;
+          statusEl.textContent = "";
+        } else {
+          // Обычный веб (браузер)
+          const res = await fetch(API_BASE + "/api/session",{method:"GET"});
+          if(!res.ok) throw new Error("HTTP "+res.status);
+          const data = await res.json();
+          playerId = data.playerId || "demo-player-1";
+          userBalance = Number(data.balance ?? 0);
+          if(!Number.isFinite(userBalance)) userBalance = 0;
+
+          currentProfile.nickname = data.nickname || null;
+          currentProfile.email = data.email || null;
+
+          statusEl.textContent = "";
+        }
       }catch(err){
         console.error("initProfile error:",err);
         if(!playerId) playerId="demo-player-1";
@@ -997,8 +1110,8 @@
       updateProfileNameUI();
       updateHistoryUI();
 
-      // если нет никнейма — сразу предлагаем заполнить профиль
-      if(!currentProfile.nickname){
+      // если не телеграм и нет никнейма — просим заполнить профиль
+      if(!isTelegram && !currentProfile.nickname){
         setTimeout(()=> {
           openProfileModal();
         }, 600);
@@ -1015,6 +1128,7 @@
 
     // ----------- ПРОФИЛЬ: МОДАЛКА / API -----------
     function openProfileModal(){
+      if(isTelegram) return; // в телеграме профиль не трогаем
       if(!playerId){
         initProfile();
       }
@@ -1080,9 +1194,8 @@
 
     // ----------- ДЕПОЗИТ ЧЕРЕЗ API: МОДАЛКА -----------
     function openDepositModal(){
-      // без регистрации не даём депозит
       const hasName = currentProfile.nickname && currentProfile.nickname.trim();
-      if(!hasName){
+      if(!hasName && !isTelegram){
         statusEl.textContent = "Сначала заполни профиль (никнейм)";
         openProfileModal();
         return;
@@ -1096,6 +1209,9 @@
       depositResultEl.style.display = "none";
       depositTagBlockEl.style.display = "none";
       depositAmountInput.value = "50";
+      if(depositCoinSelect){
+        depositCoinSelect.value = "10"; // BTC по умолчанию
+      }
       depositModal.classList.add("open");
     }
 
@@ -1123,7 +1239,7 @@
           await initProfile();
         }
 
-        const paymentId = 10; // ID валюты в PassimPay (пока жёстко)
+        const paymentId = depositCoinSelect ? Number(depositCoinSelect.value) : 10;
 
         const res = await fetch(API_BASE + "/api/deposit/create", {
           method:"POST",
@@ -1217,7 +1333,7 @@
     // ----------- ВЫВОД СРЕДСТВ: МОДАЛКА -----------
     function openWithdrawModal(){
       const hasName = currentProfile.nickname && currentProfile.nickname.trim();
-      if(!hasName){
+      if(!hasName && !isTelegram){
         statusEl.textContent = "Сначала заполни профиль (никнейм)";
         openProfileModal();
         return;
@@ -1265,7 +1381,6 @@
 
       withdrawLoadingEl.style.display = "block";
 
-      // В прототипе просто списываем баланс локально и показываем текст.
       setTimeout(()=>{
         withdrawLoadingEl.style.display = "none";
 
@@ -1325,17 +1440,52 @@
       openWithdrawModal();
     });
 
-    document.getElementById("bottom-bet").addEventListener("click",()=>{
-      const vStr=prompt("Введите ставку",baseBet.toFixed(2));
-      const val=parseFloat(vStr||"");
-      if(!val||val<=0) return;
-      baseBet=val;
-      betBottomEl.textContent=baseBet.toFixed(2);
+    // ----- модалка ставки -----
+    function openBetModal(){
+      let closest = betOptions[0];
+      let minDiff = Infinity;
+      betOptions.forEach(opt=>{
+        const val = Number(opt.dataset.value);
+        const diff = Math.abs(val - baseBet);
+        opt.classList.remove("selected");
+        if(diff < minDiff){
+          minDiff = diff;
+          closest = opt;
+        }
+      });
+      if(closest) closest.classList.add("selected");
+      betModal.classList.add("open");
+    }
+    function closeBetModal(){
+      betModal.classList.remove("open");
+    }
+    betOptions.forEach(opt=>{
+      opt.addEventListener("click",()=>{
+        betOptions.forEach(o=>o.classList.remove("selected"));
+        opt.classList.add("selected");
+      });
     });
-    autoToggleEl.addEventListener("click",()=>{
-      autoPlay=!autoPlay;
-      autoStatusEl.textContent=autoPlay?"On":"Off";
+    betSaveBtn.addEventListener("click",()=>{
+      const selected = betOptions.find(o=>o.classList.contains("selected"));
+      if(selected){
+        const v = Number(selected.dataset.value);
+        if(v > 0){
+          baseBet = v;
+          betBottomEl.textContent = baseBet.toFixed(2);
+        }
+      }
+      closeBetModal();
     });
+    betCloseBtn.addEventListener("click",()=>{
+      closeBetModal();
+    });
+    betModal.addEventListener("click",(e)=>{
+      if(e.target === betModal){
+        closeBetModal();
+      }
+    });
+
+    document.getElementById("bottom-bet").addEventListener("click",openBetModal);
 
     // Обработчики профиля
     if(profileChip){
@@ -1367,9 +1517,8 @@
     async function startRound(){
       if(!allLoaded) return;
 
-      // блокируем игру без регистрации
       const hasName = currentProfile.nickname && currentProfile.nickname.trim();
-      if(!hasName){
+      if(!hasName && !isTelegram){
         statusEl.textContent = "Сначала заполни профиль (никнейм)";
         openProfileModal();
         return;
