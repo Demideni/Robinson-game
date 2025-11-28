@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <title>Робинзон — игра</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#05010a" />
+  <meta name="theme-color" content="#021824" />
   <!-- Telegram WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
@@ -13,23 +13,22 @@
     html,body{
       width:100%;height:100%;overflow:hidden;
       font-family:system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
-      background:
-        radial-gradient(circle at top,#2b0b18 0,#05010a 40%,#020008 100%);
+      background:radial-gradient(circle at top,#1b8ea5 0,#021824 45%,#010910 100%);
       color:#fff;
     }
 
-    /* ---------- TOP UI (Pulz style) ---------- */
+    /* ---------- TOP UI (островной стиль) ---------- */
     #ui{
       position:absolute;top:0;left:0;right:0;
       padding:8px 10px 4px;
       display:flex;flex-direction:column;gap:4px;
       background:linear-gradient(
         to bottom,
-        rgba(5,0,15,.92),
-        rgba(5,0,15,.6),
-        rgba(5,0,15,0)
+        rgba(2,24,36,.95),
+        rgba(2,24,36,.6),
+        rgba(2,24,36,0)
       );
-      box-shadow:0 6px 18px rgba(0,0,0,.7);
+      box-shadow:0 6px 22px rgba(0,0,0,.75);
       z-index:10;pointer-events:none;
     }
     #ui-top{
@@ -37,33 +36,29 @@
       gap:10px;pointer-events:auto;
     }
     #logo{
-      width:220px;height:55px;
+      width:210px;height:50px;
       background:url('assets/logo_robinson.png') no-repeat left center/contain;
       text-indent:-9999px;overflow:hidden;flex-shrink:0;
-      filter:drop-shadow(0 0 8px rgba(255,24,78,.75));
+      filter:drop-shadow(0 0 8px rgba(255,255,255,.6));
     }
 
     button{
       border:none;border-radius:999px;padding:6px 12px;
       font-size:14px;font-weight:600;cursor:pointer;
-      background:linear-gradient(135deg,#ff184e,#ff4b2b);
+      background:linear-gradient(135deg,#ffb642,#ff7b2b);
       color:#ffffff;
-      border:1px solid rgba(255,255,255,.14);
-      box-shadow:
-        0 0 12px rgba(255,24,78,.7),
-        0 4px 14px rgba(0,0,0,.7);
+      border:1px solid rgba(255,255,255,.18);
+      box-shadow:0 0 12px rgba(0,0,0,.7);
       white-space:nowrap;
       text-shadow:0 1px 2px rgba(0,0,0,.8);
       transition:transform .08s ease,box-shadow .08s ease,filter .12s ease;
     }
     button:active{
       transform:scale(.95) translateY(1px);
-      box-shadow:
-        0 0 6px rgba(255,24,78,.6),
-        0 2px 8px rgba(0,0,0,.8);
+      box-shadow:0 0 6px rgba(0,0,0,.6);
     }
     button:disabled{
-      opacity:.4;cursor:default;
+      opacity:.45;cursor:default;
       box-shadow:none;
       filter:grayscale(.8) brightness(.7);
     }
@@ -73,29 +68,28 @@
       pointer-events:auto;padding:0 2px;flex-shrink:0;
     }
 
-    /* Чип профиля */
     #profile-chip{
       display:flex;
       align-items:center;
       justify-content:center;
       padding:4px 10px;
       border-radius:999px;
-      background:rgba(5,0,15,.7);
-      border:1px solid rgba(255,255,255,.15);
+      background:rgba(5,45,65,.9);
+      border:1px solid rgba(255,255,255,.2);
       box-shadow:0 2px 8px rgba(0,0,0,.8);
       font-size:13px;
-      color:#ffb1c6;
+      color:#e6fffb;
       text-shadow:0 1px 2px rgba(0,0,0,.8);
       cursor:pointer;
       max-width:130px;
     }
     #profile-chip.guest{
-      border-color: rgba(255,255,255,.35);
-      background: rgba(5,0,15,.9);
-      color:#ffc6c6;
+      border-color:rgba(255,255,255,.35);
+      background:rgba(10,60,80,.95);
+      color:#e7f9ff;
     }
     #profile-chip:hover{
-      background:rgba(255,24,78,.12);
+      background:rgba(255,255,255,.06);
     }
     #profile-name{
       max-width:120px;
@@ -105,26 +99,29 @@
     }
 
     #menu-btn{
-      width:60px;height:60px;padding:0;border-radius:50%;
+      width:52px;height:52px;padding:0;border-radius:50%;
       background:url('assets/btn_menu.png') center no-repeat;
       background-size:100% 100%;
-      box-shadow:
-        0 0 10px rgba(255,24,78,.75),
-        0 4px 12px rgba(0,0,0,.8);
+      box-shadow:0 0 12px rgba(0,0,0,.9);
       font-size:0;
-    }
-    #menu-btn:active{
-      transform:scale(.94) translateY(1px);
     }
 
     #stats{
-      display:none;justify-content:space-between;font-size:14px;
+      display:flex;justify-content:space-between;font-size:13px;
       text-shadow:0 1px 3px rgba(0,0,0,.7);padding:0 2px;
+      color:#e4fbff;
     }
     #status-text{
-      display:none;font-weight:600;
-      color:#ff8aa8;
+      font-weight:500;
+      color:#ffe7a8;
       text-shadow:0 1px 3px rgba(0,0,0,.9);
+      font-size:13px;
+      padding:0 2px;
+    }
+    #max-win-box{
+      font-size:12px;
+      opacity:.9;
+      color:#ffefb8;
     }
 
     /* ---------- CANVAS + DIM ---------- */
@@ -136,7 +133,7 @@
       content:"";
       position:absolute;
       inset:0;
-      background:radial-gradient(circle at top,rgba(0,0,0,.05),rgba(0,0,0,.35));
+      background:radial-gradient(circle at top,rgba(255,255,255,.08),rgba(0,0,0,.25));
       pointer-events:none;
       z-index:1;
     }
@@ -146,7 +143,7 @@
       display:block;
     }
 
-    /* ---------- SPLASH (start screen, чистая картинка) ---------- */
+    /* ---------- SPLASH (стартовый экран только картинка) ---------- */
     #splash{
       position:fixed;inset:0;
       background:url('assets/splash_bg.png') center center / cover no-repeat;
@@ -158,21 +155,18 @@
       width:100%;max-width:360px;
       padding:24px 20px calc(24px + env(safe-area-inset-bottom));
       text-align:center;display:flex;flex-direction:column;gap:16px;
-      color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.9);
-      background:transparent;
-      border:none;
-      box-shadow:none;
+      background:transparent;border:none;box-shadow:none;
     }
 
-    /* ---------- BOTTOM UI (Pulz panel) ---------- */
+    /* ---------- BOTTOM UI (табло) ---------- */
     #bottom-ui{
       position:absolute;left:0;right:0;bottom:0;
-      min-height:120px;
+      min-height:122px;
       background:linear-gradient(
         to top,
-        rgba(5,0,15,.96),
-        rgba(5,0,15,.9),
-        rgba(5,0,15,.7)
+        rgba(3,34,51,.97),
+        rgba(3,34,51,.9),
+        rgba(3,34,51,.78)
       );
       display:none;
       align-items:center;justify-content:space-around;
@@ -185,29 +179,26 @@
       color:#ffffff;
     }
     .bottom-item{
-      font-size:16px;text-shadow:0 2px 4px rgba(0,0,0,.7);
+      font-size:15px;text-shadow:0 2px 4px rgba(0,0,0,.7);
       display:flex;flex-direction:column;gap:2px;pointer-events:auto;
     }
     .bottom-label{
       font-size:11px;text-transform:uppercase;
-      opacity:.7;letter-spacing:.08em;
-      color:#ff7ea2;
+      opacity:.75;letter-spacing:.08em;
+      color:#b8efff;
     }
     .bottom-value{
       font-size:18px;font-weight:700;
       color:#ffffff;
     }
-    #bottom-bet,#auto-toggle{cursor:pointer}
+    #bottom-bet,#auto-toggle,#speed-control{cursor:pointer}
 
     /* ---------- PLAY BUTTON ---------- */
     #start-round-btn{
-      width:128px;height:128px;padding:0;border-radius:50%;
+      width:118px;height:118px;padding:0;border-radius:50%;
       background:url('assets/btn_play.png') center no-repeat;
       background-size:100% 100%;
-      box-shadow:
-        0 0 30px rgba(255,24,78,.9),
-        0 0 60px rgba(255,24,78,.7),
-        0 6px 20px rgba(0,0,0,1);
+      box-shadow:0 0 28px rgba(255,198,92,.95);
       font-size:0;
       position:relative;
       z-index:2;
@@ -215,13 +206,13 @@
     }
     #start-round-btn::after{
       content:"";
-      position:absolute;inset:-14px;
+      position:absolute;inset:-12px;
       border-radius:50%;
-      border:2px solid rgba(255,24,78,.75);
+      border:2px solid rgba(255,213,112,.8);
       box-shadow:
-        0 0 18px rgba(255,24,78,.9),
-        0 0 32px rgba(255,24,78,.7);
-      opacity:.85;
+        0 0 18px rgba(255,213,112,.9),
+        0 0 32px rgba(255,198,92,.7);
+      opacity:.9;
       animation:pulsePlay 1.4s infinite ease-in-out;
     }
     #start-round-btn:disabled::after{
@@ -229,9 +220,9 @@
       animation:none;
     }
     @keyframes pulsePlay{
-      0%{transform:scale(1);opacity:.8;}
+      0%{transform:scale(1);opacity:.85;}
       50%{transform:scale(1.08);opacity:.35;}
-      100%{transform:scale(1);opacity:.8;}
+      100%{transform:scale(1);opacity:.85;}
     }
 
     /* ---------- MAIN MENU (CENTERED) ---------- */
@@ -242,7 +233,7 @@
       align-items:center;
       justify-content:center;
       z-index:2500;
-      background:rgba(0,0,0,.6);
+      background:rgba(0,0,0,.55);
       backdrop-filter:blur(12px);
     }
     #menu-panel.open{
@@ -251,13 +242,13 @@
     #menu-inner{
       width:80%;
       max-width:280px;
-      background:radial-gradient(circle at top,#1a0710,#05010a);
+      background:radial-gradient(circle at top,#135a72,#031e2a);
       border-radius:18px;
       padding:14px 14px 12px;
-      border:1px solid rgba(255,24,78,.55);
+      border:1px solid rgba(255,255,255,.4);
       box-shadow:
-        0 0 24px rgba(255,24,78,.6),
-        0 18px 40px rgba(0,0,0,.95);
+        0 0 26px rgba(0,0,0,.9),
+        0 20px 40px rgba(0,0,0,1);
       display:flex;
       flex-direction:column;
       gap:10px;
@@ -278,17 +269,19 @@
       font-weight:600;
       border:none;
       cursor:pointer;
-      background:linear-gradient(135deg,#ff184e,#ff4b2b);
-      color:#fff;
-      text-shadow:0 1px 2px rgba(0,0,0,.8);
+      background:linear-gradient(135deg,#ffd45a,#ff9b3e);
+      color:#2b1800;
+      text-shadow:0 1px 2px rgba(255,255,255,.6);
       box-shadow:
-        0 0 14px rgba(255,24,78,.8),
+        0 0 14px rgba(0,0,0,.9),
         0 4px 10px rgba(0,0,0,1);
     }
     .menu-item.secondary{
-      background:rgba(5,0,15,.9);
+      background:rgba(5,45,65,.95);
+      color:#ffffff;
+      text-shadow:0 1px 2px rgba(0,0,0,.8);
       box-shadow:0 2px 8px rgba(0,0,0,.9);
-      border:1px solid rgba(255,255,255,.2);
+      border:1px solid rgba(255,255,255,.25);
     }
     #menu-close{
       margin-top:4px;
@@ -297,7 +290,7 @@
       border-radius:999px;
       font-size:13px;
       border:none;
-      background:rgba(255,255,255,.08);
+      background:rgba(255,255,255,.12);
       color:#fff;
       cursor:pointer;
     }
@@ -326,7 +319,7 @@
     #bet-modal .modal-backdrop{
       position:absolute;
       inset:0;
-      background:rgba(0,0,0,.7);
+      background:rgba(0,0,0,.65);
       backdrop-filter:blur(12px);
     }
     #deposit-modal .modal-dialog,
@@ -337,13 +330,13 @@
       z-index:1;
       width:90%;
       max-width:360px;
-      background:radial-gradient(circle at top,#1a0710,#05010a);
+      background:radial-gradient(circle at top,#135a72,#031e2a);
       border-radius:18px;
       padding:18px 16px 16px;
-      border:1px solid rgba(255,24,78,.55);
+      border:1px solid rgba(255,255,255,.45);
       box-shadow:
-        0 0 24px rgba(255,24,78,.6),
-        0 18px 40px rgba(0,0,0,.95);
+        0 0 24px rgba(0,0,0,.9),
+        0 20px 40px rgba(0,0,0,1);
       display:flex;
       flex-direction:column;
       gap:10px;
@@ -361,45 +354,45 @@
       flex-direction:column;
       gap:4px;
       font-size:13px;
-      color:#ffb1c6;
+      color:#d1f6ff;
     }
     .modal-label input,
     .modal-label select{
       margin-top:2px;
       border-radius:999px;
-      border:1px solid rgba(255,255,255,.18);
+      border:1px solid rgba(255,255,255,.2);
       padding:8px 12px;
       font-size:15px;
-      background:rgba(5,0,15,.85);
+      background:rgba(2,24,36,.9);
       color:#fff;
       outline:none;
       box-shadow:0 0 0 1px rgba(0,0,0,.5);
     }
     .modal-label input:focus,
     .modal-label select:focus{
-      border-color:#ff184e;
+      border-color:#ffd45a;
       box-shadow:
-        0 0 0 1px rgba(255,24,78,.5),
-        0 0 12px rgba(255,24,78,.6);
+        0 0 0 1px rgba(255,212,90,.7),
+        0 0 12px rgba(255,212,90,.8);
     }
     .modal-hint{
       font-size:11px;
       line-height:1.4;
-      opacity:.8;
-      color:#ffb1c6;
+      opacity:.9;
+      color:#e3fbff;
     }
     .modal-section{
       margin-top:8px;
       padding-top:8px;
-      border-top:1px solid rgba(255,255,255,.08);
+      border-top:1px solid rgba(255,255,255,.12);
     }
     .modal-subtitle{
       font-size:12px;
       text-transform:uppercase;
       letter-spacing:.08em;
-      opacity:.85;
+      opacity:.9;
       margin-bottom:4px;
-      color:#ff7ea2;
+      color:#ffe9ad;
     }
     .modal-mono{
       font-family:ui-monospace,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
@@ -407,8 +400,8 @@
       word-break:break-all;
       padding:8px;
       border-radius:8px;
-      background:rgba(0,0,0,.6);
-      border:1px solid rgba(255,255,255,.1);
+      background:rgba(0,0,0,.5);
+      border:1px solid rgba(255,255,255,.14);
     }
     .modal-primary-btn{
       margin-top:4px;
@@ -419,18 +412,12 @@
       font-weight:600;
       border:none;
       cursor:pointer;
-      background:linear-gradient(135deg,#ff184e,#ff4b2b);
-      color:#fff;
-      text-shadow:0 1px 2px rgba(0,0,0,.8);
+      background:linear-gradient(135deg,#ffd45a,#ff9b3e);
+      color:#2b1800;
+      text-shadow:0 1px 2px rgba(255,255,255,.7);
       box-shadow:
-        0 0 16px rgba(255,24,78,.85),
+        0 0 16px rgba(0,0,0,1),
         0 4px 12px rgba(0,0,0,1);
-    }
-    .modal-primary-btn:active{
-      transform:scale(.96) translateY(1px);
-      box-shadow:
-        0 0 8px rgba(255,24,78,.7),
-        0 2px 8px rgba(0,0,0,1);
     }
     .modal-secondary-btn{
       margin-top:6px;
@@ -438,19 +425,10 @@
       border-radius:999px;
       padding:7px 12px;
       font-size:13px;
-      border:1px solid rgba(255,255,255,.24);
-      background:rgba(5,0,15,.9);
+      border:1px solid rgba(255,255,255,.3);
+      background:rgba(2,24,36,.95);
       color:#fff;
       cursor:pointer;
-    }
-    .modal-secondary-btn:active{
-      transform:scale(.97) translateY(1px);
-    }
-    .modal-error{
-      min-height:14px;
-      font-size:11px;
-      color:#ff5c7a;
-      margin-top:2px;
     }
     .modal-close-btn{
       margin-top:6px;
@@ -459,9 +437,15 @@
       padding:7px 12px;
       font-size:13px;
       border:none;
-      background:rgba(255,255,255,.08);
+      background:rgba(255,255,255,.12);
       color:#fff;
       cursor:pointer;
+    }
+    .modal-error{
+      min-height:14px;
+      font-size:11px;
+      color:#ff8898;
+      margin-top:2px;
     }
 
     /* ---------- BET WHEEL ---------- */
@@ -480,7 +464,7 @@
       text-align:center;
       font-size:14px;
       font-weight:600;
-      background:rgba(5,0,15,.9);
+      background:rgba(2,24,36,.9);
       border:1px solid rgba(255,255,255,.18);
       box-shadow:0 2px 8px rgba(0,0,0,.8);
       cursor:pointer;
@@ -488,10 +472,64 @@
       user-select:none;
     }
     .bet-option.selected{
-      background:linear-gradient(135deg,#ff184e,#ff4b2b);
-      border-color:rgba(255,255,255,.6);
-      box-shadow:0 0 16px rgba(255,24,78,.8);
+      background:linear-gradient(135deg,#ffd45a,#ff9b3e);
+      border-color:rgba(255,255,255,.7);
+      box-shadow:0 0 16px rgba(0,0,0,1);
+      color:#2b1800;
+      text-shadow:0 1px 2px rgba(255,255,255,.7);
     }
+
+    /* ---------- BIG WIN POPUP ---------- */
+    #bigwin-overlay{
+      position:fixed;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index:2600;
+      background:radial-gradient(circle at center,rgba(255,255,255,.12),rgba(0,0,0,.85));
+    }
+    #bigwin-overlay.show{
+      display:flex;
+    }
+    #bigwin-inner{
+      width:80%;max-width:320px;
+      background:radial-gradient(circle at top,#ffe57f,#ffb347);
+      border-radius:20px;
+      padding:16px 14px 14px;
+      text-align:center;
+      box-shadow:
+        0 0 30px rgba(0,0,0,1),
+        0 0 60px rgba(255,210,120,.9);
+      color:#3a2200;
+    }
+    #bigwin-title{
+      font-size:20px;
+      font-weight:800;
+      margin-bottom:4px;
+      text-shadow:0 1px 2px rgba(255,255,255,.6);
+    }
+    #bigwin-mult{
+      font-size:18px;
+      font-weight:700;
+      margin-bottom:4px;
+    }
+    #bigwin-amount{
+      font-size:22px;
+      font-weight:800;
+      margin-bottom:10px;
+    }
+    #bigwin-close{
+      margin-top:4px;
+      padding:6px 14px;
+      border-radius:999px;
+      border:none;
+      background:rgba(0,0,0,.15);
+      color:#3a2200;
+      cursor:pointer;
+      font-size:13px;
+    }
+
   </style>
 </head>
 <body>
@@ -514,8 +552,9 @@
     <div id="stats">
       <div>Множитель: <span id="multiplier">1.00x</span></div>
       <div id="balance-box">Баланс: <span id="balance">0.00</span> 🪙</div>
+      <div id="max-win-box">Макс: x500 / 0.00 RUB</div>
     </div>
-    <div id="status-text">Сделай ставку и нажми ▶</div>
+    <div id="status-text">Сделай ставку, выбери скорость и нажми ▶</div>
   </div>
 
   <!-- Центрированное меню -->
@@ -534,11 +573,19 @@
       <div class="bottom-label">Balance</div>
       <div class="bottom-value" id="balance-bottom">0.00</div>
     </div>
+
     <button id="start-round-btn">▶</button>
+
     <div class="bottom-item" id="bottom-bet">
       <div class="bottom-label">Bet</div>
       <div class="bottom-value" id="bet-bottom">1.00</div>
     </div>
+
+    <div class="bottom-item" id="speed-control">
+      <div class="bottom-label">Speed</div>
+      <div class="bottom-value" id="speed-value">Medium</div>
+    </div>
+
     <div class="bottom-item" id="auto-toggle">
       <div class="bottom-label">Auto</div>
       <div class="bottom-value" id="auto-status">Off</div>
@@ -742,6 +789,16 @@
     </div>
   </div>
 
+  <!-- BIG WIN POPUP -->
+  <div id="bigwin-overlay">
+    <div id="bigwin-inner">
+      <div id="bigwin-title">BIG WIN</div>
+      <div id="bigwin-mult">x0</div>
+      <div id="bigwin-amount">0.00 RUB</div>
+      <button id="bigwin-close">Продолжить</button>
+    </div>
+  </div>
+
   <script>
     const canvas=document.getElementById("game");
     const ctx=canvas.getContext("2d");
@@ -752,9 +809,13 @@
     const balanceEl=document.getElementById("balance");
     const balanceBottomEl=document.getElementById("balance-bottom");
     const betBottomEl=document.getElementById("bet-bottom");
+    const maxWinBox=document.getElementById("max-win-box");
 
     const autoToggleEl=document.getElementById("auto-toggle");
     const autoStatusEl=document.getElementById("auto-status");
+
+    const speedControlEl=document.getElementById("speed-control");
+    const speedValueEl=document.getElementById("speed-value");
 
     const splash=document.getElementById("splash");
     const bottomUi=document.getElementById("bottom-ui");
@@ -766,7 +827,7 @@
     const menuWithdrawBtn=document.getElementById("menu-withdraw");
     const menuCloseBtn=document.getElementById("menu-close");
 
-    // элементы модалки депозита
+    // Deposit modal
     const depositModal = document.getElementById("deposit-modal");
     const depositAmountInput = document.getElementById("deposit-amount");
     const depositCoinSelect = document.getElementById("deposit-coin");
@@ -781,7 +842,7 @@
     const depositCopyAddressBtn = document.getElementById("deposit-copy-address");
     const depositCopyTagBtn = document.getElementById("deposit-copy-tag");
 
-    // элементы модалки вывода
+    // Withdraw modal
     const withdrawModal = document.getElementById("withdraw-modal");
     const withdrawCurrentBalanceEl = document.getElementById("withdraw-current-balance");
     const withdrawAmountInput = document.getElementById("withdraw-amount");
@@ -793,7 +854,7 @@
     const withdrawErrorEl = document.getElementById("withdraw-error");
     const withdrawCloseBtn = document.getElementById("withdraw-close-btn");
 
-    // элементы профиля
+    // Profile modal
     const profileModal = document.getElementById("profile-modal");
     const profileNicknameInput = document.getElementById("profile-nickname");
     const profileEmailInput = document.getElementById("profile-email");
@@ -804,13 +865,19 @@
     const profileChip = document.getElementById("profile-chip");
     const profileNameEl = document.getElementById("profile-name");
 
-    // элементы модалки ставки
+    // Bet modal
     const betModal = document.getElementById("bet-modal");
     const betSaveBtn = document.getElementById("bet-save");
     const betCloseBtn = document.getElementById("bet-close");
     const betOptions = Array.from(document.querySelectorAll(".bet-option"));
 
-    // ==== API настройки ====
+    // Big Win overlay
+    const bigwinOverlay = document.getElementById("bigwin-overlay");
+    const bigwinTitleEl = document.getElementById("bigwin-title");
+    const bigwinMultEl = document.getElementById("bigwin-mult");
+    const bigwinAmountEl = document.getElementById("bigwin-amount");
+    const bigwinCloseBtn = document.getElementById("bigwin-close");
+
     const API_BASE = "https://robinson-bet-api.onrender.com";
     let playerId = null;
     let currentRoundId = null;
@@ -820,11 +887,10 @@
       email: null
     };
 
-    // Telegram WebApp
     let tg = null;
     let isTelegram = false;
 
-    // скрываем заставку через 4 сек и показываем нижнее меню
+    // Скрываем заставку через 4 сек и показываем нижнее меню
     setTimeout(()=>{
       if(splash && !splash.classList.contains("hidden")){
         splash.classList.add("hidden");
@@ -879,8 +945,10 @@
       await initProfile();
     })();
 
-    // -------- Web Audio звуки --------
+    // ==== AUDIO ====
     let audioCtx=null;
+    let windNode=null;
+
     function getAudioCtx(){
       if(!audioCtx){
         const AC=window.AudioContext||window.webkitAudioContext;
@@ -890,6 +958,7 @@
       if(audioCtx.state==="suspended") audioCtx.resume();
       return audioCtx;
     }
+
     function playTone(freq=440,dur=.2,type="sine",vol=.4){
       const ac=getAudioCtx(); if(!ac) return;
       const osc=ac.createOscillator();
@@ -934,17 +1003,47 @@
       g.gain.linearRampToValueAtTime(0.0001,now+dur);
       src.start(now);src.stop(now+dur+0.05);
     }
+
     function playWinSound(){
       playTone(880,0.18,"triangle",0.4);
       setTimeout(()=>playTone(1175,0.2,"triangle",0.45),120);
       setTimeout(()=>playTone(1320,0.25,"triangle",0.4),220);
     }
-    function playBonusSound(){playChirp(700,1100,0.18,0.5);}
-    function playBirdSound(){playChirp(400,200,0.15,0.45);}
-    function playSplashSound(){playNoiseBurst(0.3,0.35);}
-    // -----------------------------
+    function playBonusSound(){playChirp(700,1100,0.18,0.45);}
+    function playBirdSound(){playChirp(500,260,0.16,0.45);}
+    function playSplashSound(){playNoiseBurst(0.25,0.3);}
+    function playWhooshSound(){playNoiseBurst(0.15,0.22);}
 
-    let state="idle"; // idle | flying | won | lost
+    function startWindSound(){
+      const ac=getAudioCtx(); if(!ac) return;
+      if(windNode) return;
+      const len=ac.sampleRate*2;
+      const buf=ac.createBuffer(1,len,ac.sampleRate);
+      const data=buf.getChannelData(0);
+      for(let i=0;i<len;i++){
+        data[i]=(Math.random()*2-1)*0.6;
+      }
+      const src=ac.createBufferSource();
+      const g=ac.createGain();
+      src.buffer=buf;
+      src.loop=true;
+      g.gain.value=0.12;
+      src.connect(g);g.connect(ac.destination);
+      src.start();
+      windNode={src,g};
+    }
+    function stopWindSound(){
+      if(!windNode || !audioCtx) return;
+      const now=audioCtx.currentTime;
+      windNode.g.gain.cancelScheduledValues(now);
+      windNode.g.gain.setValueAtTime(windNode.g.gain.value,now);
+      windNode.g.gain.linearRampToValueAtTime(0.0001,now+0.2);
+      windNode.src.stop(now+0.25);
+      windNode=null;
+    }
+
+    // ==== GAME STATE ====
+    let state="idle"; // idle | flying | won | lost | skid
     let robinson;
     let objects;
     let time;
@@ -954,18 +1053,17 @@
     let userBalance=100;
 
     const HERO_X_REL=0.25;
-    const OBJECT_SPEED = 494;
-    const ISLAND_BASE_PROB=0.012;
-
-    // Увеличили: бонусы ×3, птицы ×2
-    const BIRD_BASE_PROB  = 0.14 * 6;   // было *3
-    const BONUS_BASE_PROB = 0.14 * 9;   // было *3
-
+    const OBJECT_SPEED_BASE = 480;
     const WATER_LINE_REL=0.8;
     const GRAVITY_BASE=75;
     let gravity=GRAVITY_BASE;
 
-    const PLAYFIELD_TOP_REL = 0.18; // верхняя граница геймплея
+    const PLAYFIELD_TOP_REL = 0.18;
+    const VIEW_OFFSET_REL=0.10;
+
+    // Остров x2
+    const ISLAND_WIDTH = 320;
+    const ISLAND_HEIGHT = 90;
 
     let bonusPulse=0;
     let robinsonAnimTime=0;
@@ -979,17 +1077,47 @@
     let bonusParticles=[];
     let shakeTime=0;
 
-    const VIEW_OFFSET_REL=0.10;
+    let floatingTexts = [];
 
-    // RTP
+    // Island / near-miss / skid
+    let mainIsland=null;
+    let islandOutcomeDecided=false; // уже решили win/near-miss/skid
+    let nearMissActive=false;
+    let nearMissTime=0;
+
+    let skidActive=false;
+    let skidTime=0;
+    let skidDuration=0.9;
+    let skidStartY=0;
+    let skidEndY=0;
+
+    // RTP (как раньше)
     let totalBet=0,totalPayout=0;
     const TARGET_RTP=0.96;
     let roundHistory=[];
 
     let autoPlay=false,autoRestartTimer=0;
 
-    // всплывающие надписи бонусов
-    let floatingTexts = [];
+    // Speed modes
+    const SPEED_MODES = [
+      {name:"Slow",   speedMul:0.75, gravityMul:0.9},
+      {name:"Medium", speedMul:1.0,  gravityMul:1.0},
+      {name:"Fast",   speedMul:1.3,  gravityMul:1.12},
+      {name:"Turbo",  speedMul:1.7,  gravityMul:1.25}
+    ];
+    let speedIndex=1; // Medium
+
+    function updateSpeedUI(){
+      const m=SPEED_MODES[speedIndex];
+      if(speedValueEl) speedValueEl.textContent=m.name;
+    }
+
+    function getObjectSpeed(){
+      return OBJECT_SPEED_BASE * SPEED_MODES[speedIndex].speedMul;
+    }
+    function getGravity(){
+      return GRAVITY_BASE * SPEED_MODES[speedIndex].gravityMul;
+    }
 
     function getCurrentRTP(){
       if(totalBet<=0) return TARGET_RTP;
@@ -1006,11 +1134,18 @@
     }
     function updateHistoryUI(){return;}
 
+    function updateMaxWinUI(){
+      const maxMult=500;
+      const maxWin=baseBet*maxMult;
+      maxWinBox.textContent=`Макс: x${maxMult} / ${maxWin.toFixed(2)} RUB`;
+    }
+
     function resetRound(){
       const w=canvas.width/window.devicePixelRatio;
       const h=canvas.height/window.devicePixelRatio;
-      robinson={x:w*HERO_X_REL,y:h*0.5,vy:-170,width:65,height:65};
-      gravity=GRAVITY_BASE;
+
+      robinson={x:w*HERO_X_REL,y:h*0.45,vy:-170,width:65,height:65};
+      gravity=getGravity();
       objects=[];
       splashParticles=[];
       hasSplashed=false;
@@ -1024,12 +1159,28 @@
       gameOverAnimTime=0;winAnimTime=0;
       autoRestartTimer=0;shakeTime=0;
       floatingTexts = [];
+
+      mainIsland = {
+        type:"island",
+        x:w*1.18,
+        y:h*WATER_LINE_REL,
+        w:ISLAND_WIDTH,
+        h:ISLAND_HEIGHT
+      };
+      objects.push(mainIsland);
+      islandOutcomeDecided=false;
+      nearMissActive=false;
+      nearMissTime=0;
+      skidActive=false;
+      skidTime=0;
+
       multiplierEl.textContent="1.00x";
 
+      // стартовые бонусы чуть вокруг траектории
       const baseX=w*0.55;
       const spacing=150;
       const startBonuses=["x2","x3","x5","x2","x10","x3"];
-      const bonusSize=38;
+      const bonusSize=40;
       startBonuses.forEach((kind,i)=>{
         const yOffset=(Math.random()*0.12-0.06)*h;
         objects.push({
@@ -1059,7 +1210,6 @@
       try{
         const tgApp = window.Telegram && window.Telegram.WebApp;
         if(tgApp && tgApp.initDataUnsafe && tgApp.initDataUnsafe.user){
-          // Telegram WebApp режим
           isTelegram = true;
           tg = tgApp;
           if(tg.expand) tg.expand();
@@ -1082,7 +1232,6 @@
           currentProfile.email = data.email || null;
           statusEl.textContent = "";
         } else {
-          // Обычный веб (браузер)
           const res = await fetch(API_BASE + "/api/session",{method:"GET"});
           if(!res.ok) throw new Error("HTTP "+res.status);
           const data = await res.json();
@@ -1109,8 +1258,8 @@
       updateBalanceUI();
       updateProfileNameUI();
       updateHistoryUI();
+      updateMaxWinUI();
 
-      // если не телеграм и нет никнейма — просим заполнить профиль
       if(!isTelegram && !currentProfile.nickname){
         setTimeout(()=> {
           openProfileModal();
@@ -1126,9 +1275,9 @@
       }
     }
 
-    // ----------- ПРОФИЛЬ: МОДАЛКА / API -----------
+    // -------- ПРОФИЛЬ --------
     function openProfileModal(){
-      if(isTelegram) return; // в телеграме профиль не трогаем
+      if(isTelegram) return;
       if(!playerId){
         initProfile();
       }
@@ -1138,11 +1287,9 @@
       profileEmailInput.value = currentProfile.email || "";
       profileModal.classList.add("open");
     }
-
     function closeProfileModal(){
       profileModal.classList.remove("open");
     }
-
     async function saveProfile(){
       try{
         profileErrorEl.textContent = "";
@@ -1192,7 +1339,7 @@
       }
     }
 
-    // ----------- ДЕПОЗИТ ЧЕРЕЗ API: МОДАЛКА -----------
+    // -------- ДЕПОЗИТ --------
     function openDepositModal(){
       const hasName = currentProfile.nickname && currentProfile.nickname.trim();
       if(!hasName && !isTelegram){
@@ -1210,15 +1357,13 @@
       depositTagBlockEl.style.display = "none";
       depositAmountInput.value = "50";
       if(depositCoinSelect){
-        depositCoinSelect.value = "10"; // BTC по умолчанию
+        depositCoinSelect.value = "10";
       }
       depositModal.classList.add("open");
     }
-
     function closeDepositModal(){
       depositModal.classList.remove("open");
     }
-
     async function createDeposit(){
       try{
         depositErrorEl.textContent = "";
@@ -1256,7 +1401,7 @@
 
         if(!res.ok || data.error){
           console.error("Deposit error:",data);
-          depositErrorEl.textContent = data.error || ("Ошибка: " + res.status);
+          depositErrorEl.textContent = data.error || ("PassimPay error");
           return;
         }
 
@@ -1330,7 +1475,7 @@
       });
     }
 
-    // ----------- ВЫВОД СРЕДСТВ: МОДАЛКА -----------
+    // -------- ВЫВОД --------
     function openWithdrawModal(){
       const hasName = currentProfile.nickname && currentProfile.nickname.trim();
       if(!hasName && !isTelegram){
@@ -1352,11 +1497,9 @@
       }
       withdrawModal.classList.add("open");
     }
-
     function closeWithdrawModal(){
       withdrawModal.classList.remove("open");
     }
-
     async function createWithdraw(){
       withdrawErrorEl.textContent = "";
       withdrawResultEl.style.display = "none";
@@ -1415,7 +1558,7 @@
       });
     }
 
-    // ----------- МЕНЮ ----------- 
+    // -------- МЕНЮ --------
     menuBtn.addEventListener("click",e=>{
       e.stopPropagation();
       menuPanel.classList.add("open");
@@ -1440,7 +1583,7 @@
       openWithdrawModal();
     });
 
-    // ----- модалка ставки -----
+    // ---- BET MODAL ----
     function openBetModal(){
       let closest = betOptions[0];
       let minDiff = Infinity;
@@ -1472,6 +1615,7 @@
         if(v > 0){
           baseBet = v;
           betBottomEl.textContent = baseBet.toFixed(2);
+          updateMaxWinUI();
         }
       }
       closeBetModal();
@@ -1484,10 +1628,9 @@
         closeBetModal();
       }
     });
-
     document.getElementById("bottom-bet").addEventListener("click",openBetModal);
 
-    // Обработчики профиля
+    // ---- PROFILE bindings ----
     if(profileChip){
       profileChip.addEventListener("click",(e)=>{
         e.preventDefault();
@@ -1514,6 +1657,46 @@
       });
     }
 
+    // ---- SPEED CONTROL ----
+    function cycleSpeed(){
+      speedIndex++;
+      if(speedIndex>=SPEED_MODES.length) speedIndex=0;
+      updateSpeedUI();
+      gravity=getGravity();
+      statusEl.textContent=`Скорость: ${SPEED_MODES[speedIndex].name}`;
+    }
+    speedControlEl.addEventListener("click",cycleSpeed);
+    updateSpeedUI();
+
+    // ---- AUTO PLAY ----
+    autoToggleEl.addEventListener("click",()=>{
+      autoPlay=!autoPlay;
+      autoStatusEl.textContent=autoPlay?"On":"Off";
+    });
+
+    // ---- BIG WIN POPUP ----
+    function showBigWin(winAmount,mult){
+      let title="BIG WIN";
+      if(mult>=500) title="EPIC WIN";
+      else if(mult>=250) title="ULTRA WIN";
+      else if(mult>=100) title="SUPER WIN";
+      else if(mult>=50) title="MEGA WIN";
+      else if(mult>=25) title="BIG WIN";
+
+      bigwinTitleEl.textContent=title;
+      bigwinMultEl.textContent=`x${mult.toFixed(0)}`;
+      bigwinAmountEl.textContent=`${winAmount.toFixed(2)} RUB`;
+      bigwinOverlay.classList.add("show");
+    }
+    function hideBigWin(){
+      bigwinOverlay.classList.remove("show");
+    }
+    bigwinCloseBtn.addEventListener("click",hideBigWin);
+    bigwinOverlay.addEventListener("click",(e)=>{
+      if(e.target===bigwinOverlay) hideBigWin();
+    });
+
+    // ---- ROUND CONTROL ----
     async function startRound(){
       if(!allLoaded) return;
 
@@ -1531,6 +1714,7 @@
         }
 
         getAudioCtx();
+        startWindSound();
 
         const res = await fetch(API_BASE + "/api/bet/start", {
           method: "POST",
@@ -1569,7 +1753,9 @@
     }
 
     startBtn.addEventListener("click",()=>{
-      if(state==="idle"||state==="won"||state==="lost") startRound();
+      if(state==="idle"||state==="won"||state==="lost"){
+        startRound();
+      }
     });
 
     async function finishRound(result){
@@ -1608,6 +1794,10 @@
 
       if (result === "won") {
         totalPayout += winAmount;
+
+        if(multiplier>=25){
+          showBigWin(winAmount,multiplier);
+        }
       }
 
       roundHistory.unshift({ result, bet: baseBet, multiplier, win: winAmount });
@@ -1619,41 +1809,16 @@
       console.log(`RTP (локальный): ${rtp.toFixed(1)}% (target ${(TARGET_RTP*100).toFixed(0)}%)`);
     }
 
+    // ==== SPAWN / COLLISIONS ====
+    function vibrate(pattern){
+      if(navigator.vibrate) navigator.vibrate(pattern);
+    }
+
     function getLastOfType(type){
       for(let i=objects.length-1;i>=0;i--){
         if(objects[i].type===type) return objects[i];
       }
       return null;
-    }
-
-    function spawnIsland(){
-      const w=canvas.width/window.devicePixelRatio;
-      const h=canvas.height/window.devicePixelRatio;
-      const width=260,height=80;
-      const y=h*WATER_LINE_REL;
-      const x=w+width*0.6;
-      const last=getLastOfType("island");
-      const minGap=260;
-      if(last && last.x-x<minGap) return;
-      objects.push({type:"island",x,y,w:width,h:height});
-    }
-
-    function spawnBird(){
-      const w=canvas.width/window.devicePixelRatio;
-      const h=canvas.height/window.devicePixelRatio;
-      const size=58;
-      const minY=h*PLAYFIELD_TOP_REL + 20;
-      const maxY=h*0.78;
-      const y=minY+Math.random()*(maxY-minY);
-      const x=w+size*0.8;
-      const last=getLastOfType("bird");
-      const minGap=80;
-      if(last && last.x-x<minGap) return;
-      objects.push({
-        type:"bird",
-        x,y,w:size,h:size,
-        phase:Math.random()*Math.PI*2
-      });
     }
 
     const BONUS_WEIGHTS=[
@@ -1685,16 +1850,35 @@
       }
       return "x2";
     }
+
+    function spawnBird(){
+      const w=canvas.width/window.devicePixelRatio;
+      const h=canvas.height/window.devicePixelRatio;
+      const size=58;
+      const minY=h*PLAYFIELD_TOP_REL + 20;
+      const maxY=h*0.78;
+      const y=minY+Math.random()*(maxY-minY);
+      const x=w+size*0.8;
+      const last=getLastOfType("bird");
+      const minGap=90;
+      if(last && last.x-x<minGap) return;
+      objects.push({
+        type:"bird",
+        x,y,w:size,h:size,
+        phase:Math.random()*Math.PI*2
+      });
+    }
+
     function spawnBonus(rtpFactor){
       const w=canvas.width/window.devicePixelRatio;
       const h=canvas.height/window.devicePixelRatio;
-      const size=38;
+      const size=42;
       const minY=h*PLAYFIELD_TOP_REL + 20;
-      const maxY=h*0.75;
+      const maxY=h*0.78;
       const y=minY+Math.random()*(maxY-minY);
       const x=w+size*0.6;
       const last=getLastOfType("bonus");
-      const minGap=100;
+      const minGap=80;
       if(last && last.x-x<minGap) return;
       objects.push({
         type:"bonus",
@@ -1707,6 +1891,7 @@
     function isColliding(a,b){
       return !(a.x+a.w<b.x || a.x>b.x+b.w || a.y+a.h<b.y || a.y>b.y+b.h);
     }
+
     function createSplash(x,waterY){
       const count=22;
       for(let i=0;i<count;i++){
@@ -1724,10 +1909,10 @@
       }
     }
     function addBonusParticles(x,y){
-      const count=18;
+      const count=20;
       for(let i=0;i<count;i++){
         const ang=Math.random()*Math.PI*2;
-        const sp=60+Math.random()*70;
+        const sp=70+Math.random()*80;
         bonusParticles.push({
           x,y,
           vx:Math.cos(ang)*sp,
@@ -1737,10 +1922,6 @@
         });
       }
     }
-    function vibrate(pattern){
-      if(navigator.vibrate) navigator.vibrate(pattern);
-    }
-
     function spawnFloatingText(text,x,y){
       floatingTexts.push({
         text,
@@ -1754,6 +1935,7 @@
       });
     }
 
+    // ==== UPDATE / RENDER ====
     function update(dt){
       time+=dt;
       bonusPulse=Math.max(0,bonusPulse-dt);
@@ -1787,9 +1969,16 @@
       }
       floatingTexts=floatingTexts.filter(ft=>ft.life<ft.maxLife);
 
-      if((state==="won"||state==="lost") && autoPlay){
+      if(nearMissActive){
+        nearMissTime+=dt;
+        if(nearMissTime>0.6){
+          nearMissActive=false;
+        }
+      }
+
+      if((state==="won"||state==="lost"||state==="skid") && autoPlay){
         autoRestartTimer+=dt;
-        if(autoRestartTimer>1.5 && !startBtn.disabled && userBalance>=baseBet){
+        if(autoRestartTimer>1.7 && !startBtn.disabled && userBalance>=baseBet){
           autoRestartTimer=0;startRound();return;
         }
       }
@@ -1808,9 +1997,30 @@
         return;
       }
 
-      // FLYING
-      robinson.vy+=gravity*dt;
-      robinson.y+=robinson.vy*dt;
+      if(state==="skid"){
+        skidTime+=dt;
+        const t=Math.min(skidTime/skidDuration,1);
+        const ease=1-Math.pow(1-t,2);
+        robinson.y=skidStartY+(skidEndY-skidStartY)*ease;
+        cameraY=-(robinson.y-h*0.55)*0.11;
+        if(t>=1){
+          state="lost";
+          heroVisible=false;
+          createSplash(robinson.x,waterY);
+          playSplashSound();
+          vibrate(220);
+          finishRound("lost");
+          stopWindSound();
+        }
+        return;
+      }
+
+      // ---- FLYING ----
+      let timeScale=nearMissActive?0.35:1;
+      const speed = getObjectSpeed();
+
+      robinson.vy+=gravity*dt*timeScale;
+      robinson.y+=robinson.vy*dt*timeScale;
 
       const topLimit=h*PLAYFIELD_TOP_REL;
       if(robinson.y<topLimit){
@@ -1818,7 +2028,109 @@
         if(robinson.vy<0) robinson.vy=0;
       }
 
-      if(robinson.y+robinson.height/2>=waterY){
+      const heroX=robinson.x;
+
+      const dx=speed*dt*timeScale;
+      objects.forEach(o=>{o.x-=dx;});
+
+      const rtpFactor=getRTPFactor();
+
+      // Частота: птицы/бонусы, без новых островов
+      const birdProb  = 0.18 * 6 * rtpFactor;
+      const bonusProb = 0.22 * 6 * rtpFactor;
+
+      if(Math.random()<birdProb)  spawnBird();
+      if(Math.random()<bonusProb) spawnBonus(rtpFactor);
+
+      // Коллизии (кроме острова — его отдельно)
+      const heroBox={
+        x:robinson.x-robinson.width*0.45,
+        y:robinson.y-robinson.height*0.45,
+        w:robinson.width*0.9,
+        h:robinson.height*0.9
+      };
+
+      for(const o of objects){
+        if(o.type==="island") continue; // отдельно
+
+        const ow=o.type==="bonus"?o.w*1.1:o.w*0.8;
+        const oh=o.type==="bonus"?o.h*1.1:o.h*0.8;
+        const box={x:o.x-ow/2,y:o.y-oh/2,w:ow,h:oh};
+        if(!isColliding(heroBox,box)) continue;
+
+        if(o.type==="bird"){
+          multiplier=Math.max(multiplier*0.25,0.25);
+          multiplierEl.textContent=multiplier.toFixed(2)+"x";
+          statusEl.textContent="Птица! Множитель сильно снижен";
+          gravity=Math.min(getGravity()*1.4,GRAVITY_BASE*3);
+          robinson.vy+=60;
+          o._dead=true;
+          playBirdSound();
+          shakeTime=0.25;
+          vibrate(120);
+        }
+        if(o.type==="bonus"){
+          const val=parseInt(o.kind.slice(1));
+          multiplier*=val;
+          multiplierEl.textContent=multiplier.toFixed(2)+"x";
+          statusEl.textContent="Бонус "+o.kind+"!";
+          robinson.vy=-200;
+          gravity=Math.max(getGravity()*0.85,GRAVITY_BASE*0.7);
+          bonusPulse=0.25;
+          addBonusParticles(o.x,o.y);
+          spawnFloatingText(o.kind.toUpperCase(), robinson.x + 70, robinson.y - 40);
+          o._dead=true;
+          playBonusSound();
+          vibrate(80);
+        }
+      }
+      objects=objects.filter(o=>o.x+o.w>-80 && !o._dead);
+
+      // ---- ISLAND OUTCOME ----
+      if(mainIsland && !islandOutcomeDecided){
+        if(mainIsland.x <= heroX && mainIsland.x >= heroX-15){
+          islandOutcomeDecided=true;
+
+          const r=Math.random();
+          // ~30% чистая победа, ~15% скольжение, ~40% near-miss, остальное обычный слив
+          if(r<0.3){
+            // Win
+            state="won";
+            statusEl.textContent="Победа! Робинзон приземлился на остров";
+            winAnimTime=0;
+            finishRound("won");
+            playWinSound();
+            vibrate([80,60,80]);
+            stopWindSound();
+          }else if(r<0.45){
+            // SKID
+            skidActive=true;
+            state="skid";
+            skidTime=0;
+            skidDuration=1.0;
+            skidStartY=robinson.y-20;
+            skidEndY=waterY-robinson.height*0.3;
+            statusEl.textContent="Почти приземлился... и соскользнул!";
+            playWhooshSound();
+            vibrate([60,60,120]);
+          }else if(r<0.85){
+            // NEAR MISS (пролетает рядом)
+            nearMissActive=true;
+            nearMissTime=0;
+            statusEl.textContent="Почти попал! Совсем рядом с островом";
+            playWhooshSound();
+            vibrate(60);
+          }else{
+            // обычный слив, без спец эффектов — просто пролетает и падает позже
+          }
+        }
+      }
+
+      // ---- WATER COLLISION ----
+      // Пока остров не пройден — не даём утонуть "задолго до острова"
+      const islandPassed = !mainIsland || mainIsland.x < heroX-80;
+
+      if(islandPassed && robinson.y+robinson.height/2>=waterY){
         state="lost";
         statusEl.textContent="Робинзон упал в воду";
         startBtn.disabled=false;
@@ -1830,74 +2142,10 @@
         finishRound("lost");
         gameOverAnimTime=0;
         playSplashSound();
-        vibrate(200);
+        vibrate(180);
+        stopWindSound();
         return;
       }
-
-      const rtpFactor=getRTPFactor();
-
-      const baseIslandProb=Math.max(
-        0.0005,
-        ISLAND_BASE_PROB/(1+multiplier*0.1)
-      );
-      const islandProb = baseIslandProb * rtpFactor;
-      const birdProb  = BIRD_BASE_PROB  * (1.3 - 0.3*rtpFactor);
-      const bonusProb = BONUS_BASE_PROB * rtpFactor;
-
-      if(Math.random()<islandProb) spawnIsland();
-      if(Math.random()<birdProb)  spawnBird();
-      if(Math.random()<bonusProb) spawnBonus(rtpFactor);
-
-      const dx=OBJECT_SPEED*dt;
-      objects.forEach(o=>{o.x-=dx;});
-
-      const heroBox={
-        x:robinson.x-robinson.width*0.35,
-        y:robinson.y-robinson.height*0.35,
-        w:robinson.width*0.7,
-        h:robinson.height*0.7
-      };
-
-      for(const o of objects){
-        const ow=o.w*0.8,oh=o.h*0.8;
-        const box={x:o.x-ow/2,y:o.y-oh/2,w:ow,h:oh};
-        if(!isColliding(heroBox,box)) continue;
-
-        if(o.type==="island"){
-          state="won";
-          statusEl.textContent="Победа! Робинзон приземлился на остров";
-          winAnimTime=0;
-          finishRound("won");
-          playWinSound();
-          vibrate([80,60,80]);
-          break;
-        }
-        if(o.type==="bird"){
-          multiplier=Math.max(1,multiplier/2);
-          multiplierEl.textContent=multiplier.toFixed(2)+"x";
-          statusEl.textContent="Птица! Выигрыш уменьшен";
-          gravity=Math.min(gravity+50,GRAVITY_BASE*2.5);
-          robinson.vy+=50;
-          o._dead=true;
-          playBirdSound();
-          shakeTime=0.25;
-        }
-        if(o.type==="bonus"){
-          const val=parseInt(o.kind.slice(1));
-          multiplier*=val;
-          multiplierEl.textContent=multiplier.toFixed(2)+"x";
-          statusEl.textContent="Бонус "+o.kind+"!";
-          robinson.vy=-196;
-          gravity=Math.max(GRAVITY_BASE*0.8,gravity-20);
-          bonusPulse=0.25;
-          addBonusParticles(o.x,o.y);
-          spawnFloatingText(o.kind.toUpperCase(), robinson.x + 70, robinson.y - 40);
-          o._dead=true;
-          playBonusSound();
-        }
-      }
-
-      objects=objects.filter(o=>o.x+o.w>-50 && !o._dead);
 
       cameraY=-(robinson.y-h*0.55)*0.11;
       cameraLockY=null;
@@ -1915,7 +2163,11 @@
           ctx.drawImage(bg,x,cameraY+viewOffsetY*0.3,imgW,h);
         }
       }else{
-        ctx.fillStyle="#4cc3ff";
+        const g=ctx.createLinearGradient(0,0,0,h);
+        g.addColorStop(0,"#59d3ff");
+        g.addColorStop(0.4,"#29a0d7");
+        g.addColorStop(1,"#015471");
+        ctx.fillStyle=g;
         ctx.fillRect(0,0,w,h);
       }
     }
@@ -1939,11 +2191,18 @@
       ctx.lineTo(-40,h);
       ctx.closePath();
       const g=ctx.createLinearGradient(0,baseY,0,h);
-      g.addColorStop(0,"rgba(0,130,220,.95)");
-      g.addColorStop(0.4,"rgba(0,90,180,.98)");
-      g.addColorStop(1,"rgba(0,40,90,1)");
+      g.addColorStop(0,"rgba(0,180,220,.98)");
+      g.addColorStop(0.4,"rgba(0,120,200,.98)");
+      g.addColorStop(1,"rgba(0,50,110,1)");
       ctx.fillStyle=g;
       ctx.fill();
+
+      ctx.globalAlpha=0.18;
+      ctx.fillStyle="#ffffff";
+      for(let x=0;x<w;x+=90){
+        const yy=baseY-6+Math.sin(time*2+x*0.08)*3;
+        ctx.fillRect(x,yy,60,2);
+      }
       ctx.restore();
     }
 
@@ -1973,7 +2232,7 @@
         const alpha=1-p.life/p.maxLife;
         if(alpha<=0) continue;
         ctx.globalAlpha=alpha;
-        ctx.fillStyle="rgba(255,220,120,1)";
+        ctx.fillStyle="rgba(255,230,140,1)";
         ctx.beginPath();
         ctx.arc(p.x,p.y+cameraY+viewOffsetY,2.2,0,Math.PI*2);
         ctx.fill();
@@ -2029,12 +2288,12 @@
       const h=canvas.height/window.devicePixelRatio;
       const viewOffsetY=-h*VIEW_OFFSET_REL;
       const px=robinson.x;
-      const py=robinson.y+cameraY+viewOffsetY-robinson.height*0.6;
+      const py=robinson.y+cameraY+viewOffsetY-robinson.height*0.7;
       const winNow=baseBet*multiplier;
       const text=winNow.toFixed(2)+" RUB";
 
       ctx.save();
-      ctx.font="bold 20px system-ui";
+      ctx.font="bold 19px system-ui";
       ctx.textAlign="center";
       ctx.textBaseline="middle";
 
@@ -2110,22 +2369,22 @@
       const img=assets.win;
       const cx=w/2,cy=h*0.32;
 
-      ctx.globalAlpha=0.65*ease;
-      const glowRadius=120;
+      ctx.globalAlpha=0.7*ease;
+      const glowRadius=130;
       const grad=ctx.createRadialGradient(cx,cy,0,cx,cy,glowRadius);
-      grad.addColorStop(0,"rgba(255,220,120,1)");
-      grad.addColorStop(0.4,"rgba(255,180,60,0.9)");
+      grad.addColorStop(0,"rgba(255,245,190,1)");
+      grad.addColorStop(0.4,"rgba(255,210,90,0.95)");
       grad.addColorStop(1,"rgba(0,0,0,0)");
       ctx.fillStyle=grad;
       ctx.beginPath();
       ctx.arc(cx,cy,glowRadius,0,Math.PI*2);
       ctx.fill();
 
-      ctx.globalAlpha=0.9*ease;
+      ctx.globalAlpha=0.95*ease;
       const sparkleCount=10;
       for(let i=0;i<sparkleCount;i++){
         const angle=time*1.5+(i*(Math.PI*2/sparkleCount));
-        const baseR=70;
+        const baseR=80;
         const wobble=Math.sin(time*3+i)*8;
         const r=baseR+wobble;
         const x=cx+Math.cos(angle)*r;
@@ -2138,7 +2397,7 @@
         ctx.beginPath();
         ctx.moveTo(-size,0);ctx.lineTo(size,0);
         ctx.moveTo(0,-size);ctx.lineTo(0,size);
-        ctx.strokeStyle="rgba(255,245,200,1)";
+        ctx.strokeStyle="rgba(255,250,210,1)";
         ctx.lineWidth=1.2;
         ctx.stroke();
         ctx.restore();
