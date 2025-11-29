@@ -2088,7 +2088,14 @@
 
       // ---- ISLAND OUTCOME ----
       if(mainIsland && !islandOutcomeDecided){
-        if(mainIsland.x <= heroX && mainIsland.x >= heroX-15){
+
+        // добавляем проверку по высоте, чтобы не было "победы в воздухе"
+        const islandTop   = mainIsland.y - mainIsland.h/2;
+        const heroBottom  = robinson.y + robinson.height/2;
+        // Робинзон должен быть недалеко над островом (не высоко в воздухе)
+        const verticalClose = heroBottom >= islandTop - robinson.height * 0.4;
+
+        if(mainIsland.x <= heroX && mainIsland.x >= heroX-15 && verticalClose){
           islandOutcomeDecided=true;
 
           const r=Math.random();
