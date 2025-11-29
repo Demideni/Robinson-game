@@ -1996,6 +1996,35 @@
         gameOverAnimTime+=dt;
         return;
       }
+// === SKID MOVEMENT (скольжение по острову) ===
+if (state === "skid") {
+
+    skidTime += dt;
+    let t = skidTime / skidDuration;
+    if (t > 1) t = 1;
+
+    // Робинзон медленно скользит вправо по острову
+    robinson.x += 120 * dt;  // скорость вправо (можно увеличить/уменьшить)
+
+    // Робинзон плавно опускается вниз, к воде
+    robinson.y = skidStartY + (skidEndY - skidStartY) * t;
+
+    // Когда дошёл до конца острова → выпадает в воду
+    if (t >= 1) {
+        state = "lost";
+        heroVisible = false;
+        createSplash(robinson.x, canvas.height * WATER_LINE_REL);
+        finishRound("lost");
+        playSplashSound();
+        vibrate(180);
+        return;
+    }
+
+    // Камера во время скольжения продолжает следить
+    cameraY = -(robinson.y - canvas.height * 0.55) * 0.1;
+
+    return; // важный return
+}
 
       if(state==="skid"){
         skidTime+=dt;
