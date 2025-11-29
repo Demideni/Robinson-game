@@ -2111,73 +2111,78 @@ if (!mainIsland || mainIsland.x < -300) {
       }
       objects=objects.filter(o=>o.x+o.w>-80 && !o._dead);
 
-      // ---- ISLAND OUTCOME ----
-      if(mainIsland && !islandOutcomeDecided){
+        // ---- ISLAND OUTCOME ----
+      if (mainIsland && !islandOutcomeDecided) {
 
-        // добавляем проверку по высоте, чтобы не было "победы в воздухе"
-        const islandTop   = mainIsland.y - mainIsland.h/2;
-        const heroBottom  = robinson.y + robinson.height/2;
-        // Робинзон должен быть недалеко над островом (не высоко в воздухе)
+        const islandTop   = mainIsland.y - mainIsland.h / 2;
+        const heroBottom  = robinson.y + robinson.height / 2;
+
+        // Робинзон должен быть недалеко над островом по высоте
         const verticalClose = heroBottom >= islandTop - robinson.height * 0.4;
 
-        if(mainIsland.x <= heroX && mainIsland.x >= heroX-15 && verticalClose){
-          islandOutcomeDecided=true;
+        // ✅ Новая логика по X: герой в пределах ширины острова
+        const horizontalClose = Math.abs(mainIsland.x - heroX) <= mainIsland.w * 0.45;
 
-          const r=Math.random();
+        if (horizontalClose && verticalClose) {
+          islandOutcomeDecided = true;
+
+          const r = Math.random();
           // ~30% чистая победа, ~15% скольжение, ~40% near-miss, остальное обычный слив
-          if(r<0.3){
+          if (r < 0.3) {
             // Win
-            state="won";
-            statusEl.textContent="Победа! Робинзон приземлился на остров";
-            winAnimTime=0;
+            state = "won";
+            statusEl.textContent = "Победа! Робинзон приземлился на остров";
+            winAnimTime = 0;
             finishRound("won");
             playWinSound();
             vibrate([80,60,80]);
             stopWindSound();
-          }else if(r<0.45){
-            // SKID
-            skidActive=true;
-            state="skid";
-            skidTime=0;
-            skidDuration=1.0;
-            skidStartY=robinson.y-20;
-            skidEndY=waterY-robinson.height*0.3;
-            statusEl.textContent="Почти приземлился... и соскользнул!";
+          } else if (r < 0.45) {
+            // SKID — скольжение в воду
+            skidActive = true;
+            state = "skid";
+            skidTime = 0;
+            skidDuration = 1.0;
+            skidStartY = robinson.y - 20;
+            skidEndY = waterY - robinson.height * 0.3;
+            statusEl.textContent = "Почти приземлился... и соскользнул!";
             playWhooshSound();
             vibrate([60,60,120]);
-          }else if(r<0.85){
-            // NEAR MISS (пролетает рядом)
-            nearMissActive=true;
-            nearMissTime=0;
-            statusEl.textContent="Почти попал! Совсем рядом с островом";
+          } else if (r < 0.85) {
+            // NEAR MISS — рядом с островом
+            nearMissActive = true;
+            nearMissTime = 0;
+            statusEl.textContent = "Почти попал! Совсем рядом с островом";
             playWhooshSound();
             vibrate(60);
-          }else{
-            // обычный слив, без спец эффектов — просто пролетает и падает позже
+          } else {
+            // обычный слив — просто пролетел и упадёт позже
           }
         }
       }
 
-      // ---- WATER COLLISION ----
-      // Пока остров не пройден — не даём утонуть "задолго до острова"
-      const islandPassed = !mainIsland || mainIsland.x < heroX-80;
 
-      if(islandPassed && robinson.y+robinson.height/2>=waterY){
-        state="lost";
-        statusEl.textContent="Робинзон упал в воду";
-        startBtn.disabled=false;
-        if(!hasSplashed){
-          createSplash(robinson.x,waterY);
-          hasSplashed=true;
+      // ---- WATER COLLISION ----
+      // Всегда топим Робинзона при касании воды
+      if (robinson.y + robinson.height / 2 >= waterY) {
+        state = "lost";
+        statusEl.textContent = "Робинзон упал в воду";
+        startBtn.disabled = false;
+
+        if (!hasSplashed) {
+          createSplash(robinson.x, waterY);
+          hasSplashed = true;
         }
-        heroVisible=false;
+
+        heroVisible = false;
         finishRound("lost");
-        gameOverAnimTime=0;
+        gameOverAnimTime = 0;
         playSplashSound();
         vibrate(180);
         stopWindSound();
         return;
       }
+
 
       cameraY=-(robinson.y-h*0.55)*0.11;
       cameraLockY=null;
