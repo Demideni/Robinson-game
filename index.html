@@ -2038,6 +2038,31 @@
       // Частота: птицы/бонусы, без новых островов
       const birdProb  = 0.18 * 6 * rtpFactor;
       const bonusProb = 0.22 * 6 * rtpFactor;
+// === FIX: регулярный спавн островов ===
+function spawnIsland() {
+    const w = canvas.width / window.devicePixelRatio;
+    const h = canvas.height / window.devicePixelRatio;
+
+    const islandX = w + 280;   // чтобы всегда появлялся впереди
+    const islandY = h * WATER_LINE_REL;
+
+    const islandObj = {
+        type: "island",
+        x: islandX,
+        y: islandY,
+        w: ISLAND_WIDTH,
+        h: ISLAND_HEIGHT
+    };
+
+    objects.push(islandObj);
+    mainIsland = islandObj;
+    islandOutcomeDecided = false;
+}
+
+// вызов спавна острова
+if (!mainIsland || mainIsland.x < -300) {
+    spawnIsland();
+}
 
       if(Math.random()<birdProb)  spawnBird();
       if(Math.random()<bonusProb) spawnBonus(rtpFactor);
