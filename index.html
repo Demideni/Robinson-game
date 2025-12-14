@@ -228,6 +228,7 @@
       display:flex;
       flex-direction:column;
       gap:4px;
+      position:relative;
 
       background:
         linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03)),
@@ -239,6 +240,98 @@
         0 0 0 1px rgba(0,229,255,.10) inset;
       text-shadow:0 2px 6px rgba(0,0,0,.75);
       user-select:none;
+    }
+
+    /* tiny neon icons (pure CSS) */
+    .bottom-item::before{
+      content:"";
+      position:absolute;
+      top:10px;
+      right:10px;
+      width:16px;height:16px;
+      opacity:.92;
+      filter:drop-shadow(0 0 6px rgba(0,229,255,.22)) drop-shadow(0 0 10px rgba(255,46,209,.16));
+    }
+    /* BALANCE: coin */
+    #bottom-balance::before{
+      border-radius:50%;
+      background:
+        radial-gradient(circle at 35% 35%, rgba(255,255,255,.35), rgba(255,255,255,0) 45%),
+        conic-gradient(from 210deg, rgba(0,229,255,.95), rgba(106,92,255,.95), rgba(255,46,209,.9), rgba(0,229,255,.95));
+      box-shadow:0 0 0 2px rgba(0,0,0,.55) inset;
+    }
+    /* BET: chip */
+    #bottom-bet::before{
+      border-radius:50%;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(0,0,0,.55) 0 48%, rgba(0,0,0,0) 50%),
+        conic-gradient(from 180deg, rgba(0,229,255,.95), rgba(106,92,255,.95), rgba(255,46,209,.9), rgba(0,229,255,.95));
+      -webkit-mask:
+        radial-gradient(circle, #000 0 100%);
+              mask: radial-gradient(circle, #000 0 100%);
+      box-shadow:
+        0 0 0 2px rgba(255,255,255,.12) inset,
+        0 0 0 6px rgba(0,0,0,.35) inset;
+    }
+    /* SPEED: lightning */
+    #speed-control::before{
+      background:conic-gradient(from 200deg, rgba(0,229,255,.95), rgba(106,92,255,.95), rgba(255,46,209,.9), rgba(0,229,255,.95));
+      clip-path:polygon(55% 0, 30% 48%, 55% 48%, 35% 100%, 70% 44%, 46% 44%);
+      border-radius:2px;
+    }
+    /* AUTO: loop */
+    #auto-toggle::before{
+      border-radius:50%;
+      background:conic-gradient(from 210deg, rgba(0,229,255,.95), rgba(106,92,255,.95), rgba(255,46,209,.9), rgba(0,229,255,.95));
+      -webkit-mask:
+        radial-gradient(circle, transparent 54%, #000 56%),
+        conic-gradient(from 310deg, #000 0 84%, transparent 84% 100%);
+              mask:
+        radial-gradient(circle, transparent 54%, #000 56%),
+        conic-gradient(from 310deg, #000 0 84%, transparent 84% 100%);
+    }
+
+    /* active states */
+    .bottom-item.is-on,
+    .bottom-item.speed-fast,
+    .bottom-item.speed-turbo{
+      border-color:rgba(0,229,255,.32);
+      box-shadow:
+        0 12px 20px rgba(0,0,0,.55),
+        0 0 22px rgba(0,229,255,.16),
+        0 0 18px rgba(255,46,209,.12),
+        0 0 0 1px rgba(0,229,255,.16) inset;
+    }
+
+    .bottom-item.is-on .bottom-value,
+    .bottom-item.speed-fast .bottom-value,
+    .bottom-item.speed-turbo .bottom-value{
+      background:linear-gradient(90deg, var(--pulz-cyan), var(--pulz-violet), var(--pulz-mag));
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+      text-shadow:none;
+      filter:drop-shadow(0 0 10px rgba(0,229,255,.18)) drop-shadow(0 0 12px rgba(255,46,209,.12));
+    }
+
+    .bottom-item.is-on::after,
+    .bottom-item.speed-fast::after,
+    .bottom-item.speed-turbo::after{
+      content:"";
+      position:absolute;
+      left:10px;right:10px;bottom:10px;
+      height:3px;
+      border-radius:999px;
+      background:linear-gradient(90deg, rgba(0,229,255,.0), rgba(0,229,255,.85), rgba(106,92,255,.85), rgba(255,46,209,.75), rgba(255,46,209,.0));
+      opacity:.55;
+      filter:blur(.2px) drop-shadow(0 0 8px rgba(0,229,255,.18));
+      animation:pulzShimmer 1.4s infinite ease-in-out;
+      pointer-events:none;
+    }
+    @keyframes pulzShimmer{
+      0%{transform:translateX(-6px);opacity:.35;}
+      50%{transform:translateX(6px);opacity:.62;}
+      100%{transform:translateX(-6px);opacity:.35;}
     }
 
     .bottom-item:active{
@@ -1241,6 +1334,13 @@
     function updateSpeedUI(){
       const m=SPEED_MODES[speedIndex];
       if(speedValueEl) speedValueEl.textContent=m.name;
+
+      // visual state for the new tap bar
+      if(speedControlEl){
+        speedControlEl.classList.remove("speed-slow","speed-medium","speed-fast","speed-turbo");
+        const key=String(m.name||"").toLowerCase();
+        speedControlEl.classList.add(`speed-${key}`);
+      }
     }
 
     function getObjectSpeed(){
@@ -1729,9 +1829,13 @@
       });
       if(closest) closest.classList.add("selected");
       betModal.classList.add("open");
+      const betTile=document.getElementById("bottom-bet");
+      if(betTile) betTile.classList.add("is-on");
     }
     function closeBetModal(){
       betModal.classList.remove("open");
+      const betTile=document.getElementById("bottom-bet");
+      if(betTile) betTile.classList.remove("is-on");
     }
     betOptions.forEach(opt=>{
       opt.addEventListener("click",()=>{
@@ -1799,10 +1903,16 @@
     speedControlEl.addEventListener("click",cycleSpeed);
     updateSpeedUI();
 
+    // initial visual state
+    if(autoToggleEl) autoToggleEl.classList.toggle("is-on", autoPlay);
+
     // ---- AUTO PLAY ----
     autoToggleEl.addEventListener("click",()=>{
       autoPlay=!autoPlay;
       autoStatusEl.textContent=autoPlay?"On":"Off";
+
+      // visual state for the new tap bar
+      autoToggleEl.classList.toggle("is-on", autoPlay);
     });
 
     // ---- BIG WIN POPUP ----
